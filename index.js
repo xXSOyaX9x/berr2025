@@ -13,16 +13,22 @@ async function main() {
         const collection = db.collection("users");
 
         // Insert a document
-        await collection.insertOne({ name: "Alice", age: 25 });
+        await collection.insertOne({ name: "Brandon", birth: 2003 });
         console.log("Document inserted!");
 
         // Query the document
-        const result = await collection.findOne({ name: "Alice" });
+        const result = await collection.findOne({ name: "Brandon" });
         console.log("Query result:", result);
+
+        console.time("Connection Time");
+    await client.connect();
+    console.timeEnd("Connection Time");
+
+
     } catch (err) {
         console.error("Error:", err);
     } finally {
-        await client.close();
+       
     }
 }
 
