@@ -1,0 +1,23 @@
+{
+  "name": "clear",
+  "version": "1.0.0",
+  "description": "Week1:Hi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xXSOyaX9x/berr2025.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xXSOyaX9x/berr2025/issues"
+  },
+  "homepage": "https://github.com/xXSOyaX9x/berr2025#readme",
+  "dependencies": {
+    "mongodb": "^6.15.0"
+  }
+}
