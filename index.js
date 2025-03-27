@@ -39,34 +39,34 @@ async function main() {
 
         const driversCollection = db.collection("drivers");
 
-      //  for (const driver of drivers) {
-     //       const result = await driversCollection.insertOne(driver);
-      //      console.log(`New driver created: ${driver.name}, ID: ${result.insertedId}`);
-      //  }
+        for (const driver of drivers) {
+            const result = await driversCollection.insertOne(driver);
+            console.log(`New driver created: ${driver.name}, ID: ${result.insertedId}`);
+        }
 
-      //  const updateResult = await db.collection('drivers').updateMany(
-      //     { name: "John Doey" },
-      //     [ { 
-      //          $set: { 
-      //                  rating: 
-      //                          { 
-      //                              $toDouble: { $round: [{ $add: ["$rating", 0.1] }, 1] } 
-       //                         }
-       //               } 
-        //      }
-       //    ]
-      //  );
+        const updateResult = await db.collection('drivers').updateMany(
+           { name: "John Doey" },
+           [ { 
+                $set: { 
+                        rating: 
+                                { 
+                                    $toDouble: { $round: [{ $add: ["$rating", 0.1] }, 1] } 
+                                }
+                      } 
+              }
+           ]
+        );
     
-     //  console.log(`Driver updated: Matched ${updateResult.matchedCount}, Modified ${updateResult.modifiedCount}`);
+       console.log(`Driver updated: Matched ${updateResult.matchedCount}, Modified ${updateResult.modifiedCount}`);
 
        const deleteResult = await db.collection(`drivers`).deleteMany({isAvailable: false});
        console.log(`Deleted Count: ${deleteResult.deletedCount}`);
 
-     // const availableDrivers = await driversCollection.find({
-     //     isAvailable: true,
-     //     rating: {$gte: 4.5}
-     // }).toArray();
-     // console.log("Available drivers:", availableDrivers);
+      const availableDrivers = await driversCollection.find({
+          isAvailable: true,
+          rating: {$gte: 4.5}
+      }).toArray();
+      console.log("Available drivers:", availableDrivers);
 
     } finally {
         await client.close();
