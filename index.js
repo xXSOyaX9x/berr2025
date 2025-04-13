@@ -1,76 +1,96 @@
-const { MongoClient } = require(`mongodb`);
+const cors = require('cors');
+const express = require('express');
+const { MongoClient, ObjectId } = require('mongodb');
 
-const drivers = [
-    {
-        name: "John Doey",
-        vehicleType: "Sedan",
-        isAvailable: true,  
-        rating: 4.8
-    },
-    {
-        name: "Alice Smith",
-        vehicleType: "SUV",
-        isAvailable: false,  
-        rating: 4.5
-    }
-];
+const app = express();
+app.use(cors());
+app.use(express.json());
+const port = 3000;
 
-drivers.forEach(driver => console.log(driver.name));
+let db;
 
-drivers.push({
-    name: "Brandon",
-    vehicleType: "Vellfire",
-    isAvailable: true,  
-    rating: 4.9
-});
-
-console.log(drivers);
-
-async function main() {
-    const uri = "mongodb://localhost:27017"; 
+const checkDB = (req, res, next) => {
+       if (!db) {
+            return res.status(500).json({ message: "Database connection not established!" });
+       }
+  next();
+  };
+  
+async function connectToMongoDB() {
+    const uri = "mongodb://localhost:27017";
     const client = new MongoClient(uri);
 
     try {
         await client.connect();
         console.log("Connected to MongoDB!");
-
-        const db = client.db("testDB");
-        const collection = db.collection("drivers");
-
-        const driversCollection = db.collection("drivers");
-
-        for (const driver of drivers) {
-            const result = await driversCollection.insertOne(driver);
-            console.log(`New driver created: ${driver.name}, ID: ${result.insertedId}`);
-        }
-
-        const updateResult = await db.collection('drivers').updateMany(
-           { name: "John Doey" },
-           [ { 
-                $set: { 
-                        rating: 
-                                { 
-                                    $toDouble: { $round: [{ $add: ["$rating", 0.1] }, 1] } 
-                                }
-                      } 
-              }
-           ]
-        );
-    
-       console.log(`Driver updated: Matched ${updateResult.matchedCount}, Modified ${updateResult.modifiedCount}`);
-
-       const deleteResult = await db.collection(`drivers`).deleteMany({isAvailable: false});
-       console.log(`Deleted Count: ${deleteResult.deletedCount}`);
-
-      const availableDrivers = await driversCollection.find({
-          isAvailable: true,
-          rating: {$gte: 4.5}
-      }).toArray();
-      console.log("Available drivers:", availableDrivers);
-
-    } finally {
-        await client.close();
+        db = client.db("testDB");
+    } catch (err) {
+        console.error("Error connecting to MongoDB:", err);
     }
 }
 
-main();
+connectToMongoDB();
+
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+
+app.get('/rides', checkDB, async (req, res) => {
+  try {
+    const rides = await db.collection('rides').find().toArray();
+    res.status(200).json(rides);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch rides" });
+  }
+});
+
+app.post('/rides', checkDB, async (req, res) => {
+  try {
+    const { name, pickup, dropoff, status } = req.body;
+
+    const result = await db.collection('rides').insertOne({
+      name,
+      pickup,
+      dropoff,
+      status: status || 'pending'
+    });
+
+    res.status(201).json({ message: 'Ride created', rideId: result.insertedId });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid ride data' });
+  }
+});
+
+
+app.patch('/rides/:id', checkDB, async (req, res) => {
+  try {
+    const result = await db.collection('rides').updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: { status: req.body.status } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Ride not found" });
+    }
+
+    res.status(200).json({ updated: result.modifiedCount });
+  } catch (err) {
+    res.status(400).json({ error: "Invalid ride ID or data" });
+  }
+});
+
+app.delete('/rides/:id', checkDB, async (req, res) => {
+  try {
+    const result = await db.collection('rides').deleteOne(
+      { _id: new ObjectId(req.params.id) }
+    );
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Ride not found" });
+    }
+
+    res.status(200).json({ deleted: result.deletedCount });
+  } catch (err) {
+    res.status(400).json({ error: "Invalid ride ID" });
+  }
+});

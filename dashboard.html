@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ride Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background-color: #f9f9fb;
+      padding: 40px;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+
+    h2 {
+      margin-top: 40px;
+      font-size: 24px;
+      color: #34495e;
+    }
+
+    form {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      margin-bottom: 30px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      flex: 1;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    th, td {
+      padding: 14px 18px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #ecf0f1;
+      color: #2c3e50;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f4f7f9;
+    }
+
+    td button {
+      margin-right: 5px;
+      background-color: #27ae60;
+    }
+
+    td button:last-child {
+      background-color: #e74c3c;
+    }
+
+    td button:hover {
+      opacity: 0.9;
+    }
+
+    td button:last-child:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🚖 Ride Management Dashboard</h1>
+
+  <!-- Create Ride Form -->
+  <h2>Create a New Ride</h2>
+  <form id="createRideForm">
+    <input type="text" id="name" placeholder="Your Name" required>
+    <input type="text" id="pickup" placeholder="Pickup Location" required>
+    <input type="text" id="dropoff" placeholder="Dropoff Location" required>
+    <button type="submit">Create Ride</button>
+  </form>
+
+  <!-- Rides Table -->
+  <h2>All Rides</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Pickup</th>
+        <th>Dropoff</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ridesTableBody"></tbody>
+  </table>
+
+  <script>
+    const apiUrl = 'http://localhost:3000/rides';
+
+    async function loadRides() {
+      const res = await fetch(apiUrl);
+      const rides = await res.json();
+      const tbody = document.getElementById('ridesTableBody');
+      tbody.innerHTML = '';
+
+      rides.forEach(ride => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${ride._id}</td>
+          <td>${ride.name || '—'}</td>
+          <td>${ride.pickup || ''}</td>
+          <td>${ride.dropoff || ''}</td>
+          <td>${ride.status || 'pending'}</td>
+          <td>
+            <button onclick="updateRide('${ride._id}')">✅ Complete</button>
+            <button onclick="deleteRide('${ride._id}')">🗑 Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('createRideForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const pickup = document.getElementById('pickup').value;
+      const dropoff = document.getElementById('dropoff').value;
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, pickup, dropoff, status: 'pending' })
+      });
+
+      if (res.ok) {
+        alert('✅ Ride created!');
+        document.getElementById('createRideForm').reset();
+        loadRides();
+      } else {
+        alert('❌ Failed to create ride');
+      }
+    });
+
+    async function updateRide(id) {
+      const res = await fetch(`${apiUrl}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      });
+
+      if (res.ok) {
+        alert('✅ Ride marked as completed!');
+        loadRides();
+      } else {
+        alert('❌ Failed to update ride');
+      }
+    }
+
+    async function deleteRide(id) {
+      const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+
+      if (res.ok) {
+        alert('🗑 Ride deleted');
+        loadRides();
+      } else {
+        alert('❌ Failed to delete ride');
+      }
+    }
+
+    window.onload = loadRides;
+  </script>
+
+</body>
+</html>
