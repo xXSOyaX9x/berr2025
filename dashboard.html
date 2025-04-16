@@ -2,208 +2,288 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ride Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <title>🌈 Fancy Ride Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      background-color: #f9f9fb;
-      padding: 40px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #ffecd2, #fcb69f);
+      padding: 20px;
       color: #333;
     }
-
     h1 {
-      font-size: 32px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: #2c3e50;
-    }
-
-    h2 {
-      margin-top: 40px;
-      font-size: 24px;
-      color: #34495e;
-    }
-
-    form {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      font-size: 36px;
+      color: #6a0572;
       margin-bottom: 30px;
+      text-shadow: 1px 1px #fff;
+    }
+    .tabs {
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
     }
-
-    input {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      flex: 1;
-    }
-
-    button {
-      padding: 10px 16px;
+    button.tab-btn {
+      padding: 12px 24px;
       border: none;
-      border-radius: 6px;
-      background-color: #3498db;
+      background: linear-gradient(to right, #ff758c, #ff7eb3);
       color: white;
+      border-radius: 30px;
+      font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      transition: transform 0.2s, background 0.3s;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
-
+    button.tab-btn:hover {
+      background: linear-gradient(to right, #ff416c, #ff4b2b);
+      transform: scale(1.05);
+    }
+    .window {
+      display: none;
+      background: #fff0f6;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-width: 900px;
+      margin: auto;
+      border: 2px dashed #ff99c8;
+    }
+    .window.active {
+      display: block;
+      animation: fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    input, select, button {
+      margin: 10px 0;
+      padding: 12px;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 15px;
+    }
+    button {
+      background-color: #6a0572;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
     button:hover {
-      background-color: #2980b9;
+      background-color: #ab83a1;
     }
-
     table {
       width: 100%;
+      margin-top: 20px;
       border-collapse: collapse;
-      background-color: #fff;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
-
     th, td {
-      padding: 14px 18px;
-      text-align: left;
+      padding: 14px;
+      border: 1px solid #ccc;
+      text-align: center;
     }
-
     th {
-      background-color: #ecf0f1;
-      color: #2c3e50;
+      background-color: #ffc8dd;
+      color: #6a0572;
     }
-
-    tr:nth-child(even) {
-      background-color: #f4f7f9;
+    #orderInfo {
+      background-color: #ffe5ec;
+      padding: 20px;
+      margin-top: 15px;
+      border-left: 5px solid #ff99ac;
+      border-radius: 10px;
+      font-size: 16px;
     }
-
-    td button {
-      margin-right: 5px;
-      background-color: #27ae60;
-    }
-
-    td button:last-child {
-      background-color: #e74c3c;
-    }
-
-    td button:hover {
-      opacity: 0.9;
-    }
-
-    td button:last-child:hover {
-      background-color: #c0392b;
+    .emoji-header {
+      font-size: 22px;
+      margin-bottom: 15px;
     }
   </style>
 </head>
 <body>
+<h1>🚖 Welcome to Easy Ride 🌟</h1>
+<div class="tabs">
+  <button class="tab-btn" onclick="showWindow(0)">🧍‍♂️ Driver Login</button>
+  <button class="tab-btn" onclick="showWindow(1)">👤 User Order</button>
+  <button class="tab-btn" onclick="showWindow(2)">📋 Order List</button>
+</div>
 
-  <h1>🚖 Ride Management Dashboard</h1>
 
-  <!-- Create Ride Form -->
-  <h2>Create a New Ride</h2>
-  <form id="createRideForm">
-    <input type="text" id="name" placeholder="Your Name" required>
-    <input type="text" id="pickup" placeholder="Pickup Location" required>
-    <input type="text" id="dropoff" placeholder="Dropoff Location" required>
-    <button type="submit">Create Ride</button>
+
+<!-- Tab 1: Driver Login -->
+<div class="window active">
+  <h2>Create Driver</h2>
+  <form id="driverForm">
+    <input type="text" id="driverName" placeholder="Driver Name" required>
+    <input type="text" id="driverCarModel" placeholder="Car Model" required>
+    <input type="text" id="driverPhone" placeholder="Phone Number" required>
+    <button type="submit">Create Driver</button>
   </form>
+</div>
 
-  <!-- Rides Table -->
-  <h2>All Rides</h2>
-  <table>
+<!-- Tab 2: User Order -->
+<div class="window">
+  <h2>User Ride Order</h2>
+  <form id="orderForm">
+    <input type="text" id="orderUser" placeholder="Username" required>
+    <input type="text" id="orderPhone" placeholder="Phone Number" required>
+    <select id="orderDriverId" required>
+      <option value="">Select a Driver</option>
+    </select>
+    <input type="text" id="orderPickup" placeholder="Pickup Location" required>
+    <input type="text" id="orderDest" placeholder="Destination" required>
+    <button type="submit">Place Order</button>
+  </form>
+  <div id="orderInfo"></div>
+</div>
+
+<!-- Tab 3: Order List -->
+<div class="window">
+  <h2>All Orders</h2>
+  <table id="orderTable">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>User</th>
+        <th>Username</th>
+        <th>Driver</th>
         <th>Pickup</th>
-        <th>Dropoff</th>
+        <th>Destination</th>
+        <th>Car Model</th>
         <th>Status</th>
-        <th>Actions</th>
+        <th>Action</th>
       </tr>
     </thead>
-    <tbody id="ridesTableBody"></tbody>
+    <tbody></tbody>
   </table>
+</div>
 
-  <script>
-    const apiUrl = 'http://localhost:3000/rides';
+<script>
+const windows = document.querySelectorAll('.window');
+function showWindow(index) {
+  windows.forEach((w, i) => w.classList.toggle('active', i === index));
+}
 
-    async function loadRides() {
-      const res = await fetch(apiUrl);
-      const rides = await res.json();
-      const tbody = document.getElementById('ridesTableBody');
-      tbody.innerHTML = '';
+// Create Driver
+const driverForm = document.getElementById('driverForm');
+driverForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const data = {
+    driverId: driverName.value,
+    carModel: driverCarModel.value,
+    phone: driverPhone.value
+  };
+  await fetch('http://localhost:3000/drivers', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  driverForm.reset();
+  alert('Driver created!');
+  loadDrivers();
+};
 
-      rides.forEach(ride => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${ride._id}</td>
-          <td>${ride.name || '—'}</td>
-          <td>${ride.pickup || ''}</td>
-          <td>${ride.dropoff || ''}</td>
-          <td>${ride.status || 'pending'}</td>
-          <td>
-            <button onclick="updateRide('${ride._id}')">✅ Complete</button>
-            <button onclick="deleteRide('${ride._id}')">🗑 Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+// Load drivers into dropdown
+async function loadDrivers() {
+  const res = await fetch('http://localhost:3000/drivers');
+  const drivers = await res.json();
+  const select = document.getElementById('orderDriverId');
+  select.innerHTML = '<option value="">Select a Driver</option>';
+  drivers.forEach(driver => {
+    const option = document.createElement('option');
+    option.value = driver.driverId;
+    option.textContent = `${driver.driverId} (${driver.carModel})`;
+    select.appendChild(option);
+  });
+}
 
-    document.getElementById('createRideForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      const pickup = document.getElementById('pickup').value;
-      const dropoff = document.getElementById('dropoff').value;
+// Place Order
+const orderForm = document.getElementById('orderForm');
+orderForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const driverId = orderDriverId.value;
+  const driverRes = await fetch('http://localhost:3000/drivers');
+  const drivers = await driverRes.json();
+  const driver = drivers.find(d => d.driverId === driverId);
 
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, pickup, dropoff, status: 'pending' })
-      });
+  const data = {
+    username: orderUser.value,
+    phone: orderPhone.value,
+    driverId: driverId,
+    driverName: driverId,
+    carModel: driver ? driver.carModel : 'Unknown',
+    pickup: orderPickup.value,
+    destination: orderDest.value,
+    status: 'requested'
+  };
 
-      if (res.ok) {
-        alert('✅ Ride created!');
-        document.getElementById('createRideForm').reset();
-        loadRides();
-      } else {
-        alert('❌ Failed to create ride');
-      }
-    });
+  const res = await fetch('http://localhost:3000/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
 
-    async function updateRide(id) {
-      const res = await fetch(`${apiUrl}/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' })
-      });
+  document.getElementById('orderInfo').innerHTML = `
+    <h3>Order Summary</h3>
+    <p><strong>Driver:</strong> ${data.driverName}</p>
+    <p><strong>Pickup:</strong> ${data.pickup}</p>
+    <p><strong>Destination:</strong> ${data.destination}</p>
+    <p><strong>Car Model:</strong> ${data.carModel}</p>
+    <p><strong>Status:</strong> ${data.status}</p>
+  `;
 
-      if (res.ok) {
-        alert('✅ Ride marked as completed!');
-        loadRides();
-      } else {
-        alert('❌ Failed to update ride');
-      }
-    }
+  orderForm.reset();
+  loadOrders();
+};
 
-    async function deleteRide(id) {
-      const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+// Load Orders
+async function loadOrders() {
+  const res = await fetch('http://localhost:3000/order');
+  const orders = await res.json();
+  const tbody = document.querySelector('#orderTable tbody');
+  tbody.innerHTML = '';
+  orders.forEach(order => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${order.username}</td>
+      <td>${order.driverId}</td>
+      <td>${order.pickup}</td>
+      <td>${order.destination}</td>
+      <td>${order.carModel}</td>
+      <td>
+        <select onchange="updateStatus('${order._id}', this.value)">
+          <option value="requested" ${order.status === 'requested' ? 'selected' : ''}>requested</option>
+          <option value="accepted" ${order.status === 'accepted' ? 'selected' : ''}>accepted</option>
+          <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>completed</option>
+          <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>cancelled</option>
+        </select>
+      </td>
+      <td><button onclick="deleteOrder('${order._id}')">Delete</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
 
-      if (res.ok) {
-        alert('🗑 Ride deleted');
-        loadRides();
-      } else {
-        alert('❌ Failed to delete ride');
-      }
-    }
+async function updateStatus(id, status) {
+  await fetch(`http://localhost:3000/order/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  loadOrders();
+}
 
-    window.onload = loadRides;
-  </script>
+async function deleteOrder(id) {
+  await fetch(`http://localhost:3000/order/${id}`, { method: 'DELETE' });
+  loadOrders();
+}
 
+window.onload = () => {
+  loadDrivers();
+  loadOrders();
+};
+</script>
 </body>
 </html>
