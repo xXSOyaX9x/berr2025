@@ -49,6 +49,44 @@ app.get('/drivers', checkDB, async (req, res) => {
   }
 });
 
+// PATCH /drivers/:id - Update a driver's info
+app.patch('/drivers/:id', checkDB, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { driverId, carModel, phone } = req.body;
+
+    const result = await db.collection('drivers').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { driverId, carModel, phone } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: 'Driver not found or no change made' });
+    }
+
+    res.status(200).json({ message: 'Driver info updated' });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid driver ID or data' });
+  }
+});
+
+// DELETE /drivers/:id - Remove a driver
+app.delete('/drivers/:id', checkDB, async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await db.collection('drivers').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    res.status(200).json({ message: 'Driver deleted' });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid driver ID' });
+  }
+});
+
 // ORDER ROUTES
 app.post('/order', checkDB, async (req, res) => {
   try {
@@ -98,4 +136,5 @@ app.delete('/order/:id', checkDB, async (req, res) => {
     res.status(400).json({ error: 'Invalid order ID' });
   }
 });
+
 
