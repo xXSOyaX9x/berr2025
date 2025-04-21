@@ -1,372 +1,1298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>🌈 Fancy Ride Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Easy Ride Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    :root {
+      --primary: #4361ee;
+      --primary-light: #4895ef;
+      --secondary: #3f37c9;
+      --accent: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --success: #4cc9f0;
+      --warning: #f8961e;
+      --danger: #ef233c;
+      --gray: #6c757d;
+      --light-gray: #e9ecef;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #ffecd2, #fcb69f);
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
       padding: 20px;
-      color: #333;
+      color: var(--dark);
     }
-    h1 {
+    
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
       text-align: center;
-      font-size: 36px;
-      color: #6a0572;
       margin-bottom: 30px;
-      text-shadow: 1px 1px #fff;
     }
-    .tabs {
+    
+    h1 {
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .logo {
+      font-size: 2.8rem;
+      margin-bottom: 15px;
+    }
+    
+    .auth-switcher {
       display: flex;
       justify-content: center;
       gap: 15px;
       margin-bottom: 30px;
     }
-    button.tab-btn {
-      padding: 12px 24px;
+    
+    .btn {
+      padding: 12px 25px;
       border: none;
-      background: linear-gradient(to right, #ff758c, #ff7eb3);
-      color: white;
-      border-radius: 30px;
-      font-size: 16px;
+      border-radius: 8px;
+      font-weight: 500;
       cursor: pointer;
-      transition: transform 0.2s, background 0.3s;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
-    button.tab-btn:hover {
-      background: linear-gradient(to right, #ff416c, #ff4b2b);
-      transform: scale(1.05);
+    
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
     }
-    .window {
-      display: none;
-      background: #fff0f6;
+    
+    .btn-primary:hover {
+      background-color: var(--secondary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .btn-accent {
+      background-color: var(--accent);
+      color: white;
+    }
+    
+    .btn-accent:hover {
+      background-color: #d91a6d;
+    }
+    
+    .btn-sm {
+      padding: 8px 15px;
+      font-size: 0.9rem;
+    }
+    
+    .card {
+      background: white;
       padding: 30px;
       border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      max-width: 900px;
-      margin: auto;
-      border: 2px dashed #ff99c8;
-    }
-    .window.active {
-      display: block;
-      animation: fadeIn 0.6s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    input, select, button {
-      margin: 10px 0;
-      padding: 12px;
       width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .card-lg {
+      max-width: 100%;
+    }
+    
+    h2 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 25px;
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    h3 {
+      font-size: 1.4rem;
+      color: var(--primary);
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid var(--light-gray);
       border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 15px;
+      font-size: 1rem;
+      transition: border 0.3s ease;
     }
-    button {
-      background-color: #6a0572;
-      color: white;
-      border: none;
-      font-weight: bold;
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
     }
-    button:hover {
-      background-color: #ab83a1;
+    
+    .hidden {
+      display: none;
     }
+    
+    .dashboard {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin: 30px auto;
+      max-width: 900px;
+    }
+    
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--light-gray);
+    }
+    
+    .dashboard-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .dashboard-icon {
+      font-size: 1.8rem;
+    }
+    
     table {
       width: 100%;
-      margin-top: 20px;
       border-collapse: collapse;
-      border-radius: 10px;
-      overflow: hidden;
+      margin: 20px 0;
     }
+    
     th, td {
-      padding: 14px;
-      border: 1px solid #ccc;
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--light-gray);
+    }
+    
+    th {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 500;
+    }
+    
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .status-select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 2px solid var(--light-gray);
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+    
+    .alert-success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .alert-error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    
+    .user-list {
+      margin-top: 30px;
+    }
+    
+    .earnings-card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
       text-align: center;
     }
-    th {
-      background-color: #ffc8dd;
-      color: #6a0572;
+    
+    .earnings-amount {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 10px 0;
     }
-    #orderInfo {
-      background-color: #ffe5ec;
-      padding: 20px;
-      margin-top: 15px;
-      border-left: 5px solid #ff99ac;
+    
+    .tab-container {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--light-gray);
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .tab.active {
+      border-bottom: 3px solid var(--primary);
+      color: var(--primary);
+      font-weight: 500;
+    }
+    
+    .tab:hover:not(.active) {
+      border-bottom: 3px solid var(--primary-light);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Improved Profile Styles */
+    .profile-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    
+    .profile-info {
+      margin-top: 20px;
+    }
+    
+    .profile-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .profile-detail {
+      background: var(--light);
+      padding: 15px;
       border-radius: 10px;
-      font-size: 16px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    .emoji-header {
-      font-size: 22px;
-      margin-bottom: 15px;
+    
+    .profile-detail h4 {
+      color: var(--gray);
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .profile-detail p {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    
+    .profile-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .status-available {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-unavailable {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    
+    .driver-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 5px 0;
+    }
+    
+    .stat-label {
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .card {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .tab-container {
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .profile-actions {
+        justify-content: center;
+      }
     }
   </style>
 </head>
+
 <body>
-<h1>🚖 Welcome to Easy Ride 🌟</h1>
-<div class="tabs">
-  <button class="tab-btn" onclick="showWindow(0)">🧍‍♂️ Driver Login</button>
-  <button class="tab-btn" onclick="showWindow(1)">👤 User Order</button>
-  <button class="tab-btn" onclick="showWindow(2)">📋 Order List</button>
-</div>
+  <div class="app-container">
+    <header>
+      <div class="logo">🚗</div>
+      <h1>Free "Rider"</h1>
+      <p>Your seamless ride-hailing experience</p>
+    </header>
 
-<!-- Tab 1: Driver Login -->
-<div class="window active">
-  <h2>Create Driver</h2>
-  <form id="driverForm">
-    <input type="text" id="driverName" placeholder="Driver Name" required>
-    <input type="text" id="driverCarModel" placeholder="Car Model" required>
-    <input type="text" id="driverPhone" placeholder="Phone Number" required>
-    <button type="submit">Create Driver</button>
-  </form>
+    <!-- Auth Switcher -->
+    <div class="auth-switcher">
+      <button class="btn btn-primary" onclick="showLogin()">Login</button>
+      <button class="btn btn-outline" onclick="showRegister()">Register</button>
+    </div>
 
-  <hr style="margin: 30px 0; border: 1px dashed #ccc;">
-  <h3>✏️ Edit or Delete Driver</h3>
-  <select id="editDriverSelect">
-    <option value="">Select a Driver</option>
-  </select>
+    <!-- Login Section -->
+    <div class="card" id="loginSection">
+      <h2>Welcome Back</h2>
+      <div class="form-group">
+        <label for="loginEmail">Email</label>
+        <input type="text" id="loginEmail" placeholder="Enter your email" />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" />
+      </div>
+      <button class="btn btn-primary" onclick="login()" style="width: 100%;">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </button>
+    </div>
 
-  <div id="editDriverForm" style="display:none; margin-top: 20px;">
-    <input type="text" id="editDriverName" placeholder="Driver Name">
-    <input type="text" id="editCarModel" placeholder="Car Model">
-    <input type="text" id="editPhone" placeholder="Phone Number">
-    <button onclick="updateDriver()">💾 Save Changes</button>
-    <button onclick="deleteDriver()" style="background:#e63946; margin-top:10px;">🗑 Delete Driver</button>
-  </div>
-</div>
-
-<!-- Tab 2: User Order -->
-<div class="window">
-  <h2>User Ride Order</h2>
-  <form id="orderForm">
-    <input type="text" id="orderUser" placeholder="Username" required>
-    <input type="text" id="orderPhone" placeholder="Phone Number" required>
-    <select id="orderDriverId" required>
-      <option value="">Select a Driver</option>
-    </select>
-    <input type="text" id="orderPickup" placeholder="Pickup Location" required>
-    <input type="text" id="orderDest" placeholder="Destination" required>
-    <button type="submit">Place Order</button>
-  </form>
-  <div id="orderInfo"></div>
-</div>
-
-<!-- Tab 3: Order List -->
-<div class="window">
-  <h2>All Orders</h2>
-  <table id="orderTable">
-    <thead>
-      <tr>
-        <th>Username</th>
-        <th>Driver</th>
-        <th>Pickup</th>
-        <th>Destination</th>
-        <th>Car Model</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-
-<script>
-const windows = document.querySelectorAll('.window');
-function showWindow(index) {
-  windows.forEach((w, i) => w.classList.toggle('active', i === index));
-}
-
-// Create Driver
-const driverForm = document.getElementById('driverForm');
-driverForm.onsubmit = async (e) => {
-  e.preventDefault();
-  const data = {
-    driverId: driverName.value,
-    carModel: driverCarModel.value,
-    phone: driverPhone.value
-  };
-  await fetch('http://localhost:3000/drivers', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
-  });
-  driverForm.reset();
-  alert('Driver created!');
-  loadDrivers();
-};
-
-// Load drivers into dropdown
-async function loadDrivers() {
-  const res = await fetch('http://localhost:3000/drivers');
-  const drivers = await res.json();
-  const select = document.getElementById('orderDriverId');
-  select.innerHTML = '<option value="">Select a Driver</option>';
-  drivers.forEach(driver => {
-    const option = document.createElement('option');
-    option.value = driver.driverId;
-    option.textContent = `${driver.driverId} (${driver.carModel})`;
-    select.appendChild(option);
-  });
-}
-
-// Place Order
-const orderForm = document.getElementById('orderForm');
-orderForm.onsubmit = async (e) => {
-  e.preventDefault();
-  const driverId = orderDriverId.value;
-  const driverRes = await fetch('http://localhost:3000/drivers');
-  const drivers = await driverRes.json();
-  const driver = drivers.find(d => d.driverId === driverId);
-
-  const data = {
-    username: orderUser.value,
-    phone: orderPhone.value,
-    driverId: driverId,
-    driverName: driverId,
-    carModel: driver ? driver.carModel : 'Unknown',
-    pickup: orderPickup.value,
-    destination: orderDest.value,
-    status: 'requested'
-  };
-
-  const res = await fetch('http://localhost:3000/order', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-
-  document.getElementById('orderInfo').innerHTML = `
-    <h3>Order Summary</h3>
-    <p><strong>Driver:</strong> ${data.driverName}</p>
-    <p><strong>Pickup:</strong> ${data.pickup}</p>
-    <p><strong>Destination:</strong> ${data.destination}</p>
-    <p><strong>Car Model:</strong> ${data.carModel}</p>
-    <p><strong>Status:</strong> ${data.status}</p>
-  `;
-
-  orderForm.reset();
-  loadOrders();
-};
-
-// Load Orders
-async function loadOrders() {
-  const res = await fetch('http://localhost:3000/order');
-  const orders = await res.json();
-  const tbody = document.querySelector('#orderTable tbody');
-  tbody.innerHTML = '';
-  orders.forEach(order => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${order.username}</td>
-      <td>${order.driverId}</td>
-      <td>${order.pickup}</td>
-      <td>${order.destination}</td>
-      <td>${order.carModel}</td>
-      <td>
-        <select onchange="updateStatus('${order._id}', this.value)">
-          <option value="requested" ${order.status === 'requested' ? 'selected' : ''}>requested</option>
-          <option value="accepted" ${order.status === 'accepted' ? 'selected' : ''}>accepted</option>
-          <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>completed</option>
-          <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>cancelled</option>
+    <!-- Register Section -->
+    <div class="card hidden" id="registerSection">
+      <h2>Create Account</h2>
+      <div class="form-group">
+        <label for="registerEmail">Email</label>
+        <input type="text" id="registerEmail" placeholder="Enter your email" />
+      </div>
+      <div class="form-group">
+        <label for="registerPassword">Password</label>
+        <input type="password" id="registerPassword" placeholder="Create a password" />
+      </div>
+      <div class="form-group">
+        <label for="registerPhone">Phone Number</label>
+        <input type="text" id="registerPhone" placeholder="Enter your phone number" required />
+      </div>
+      <div class="form-group">
+        <label for="registerRole">Role</label>
+        <select id="registerRole">
+          <option value="">Select your role</option>
+          <option value="user">Passenger</option>
+          <option value="driver">Driver</option>
         </select>
-      </td>
-      <td><button onclick="deleteOrder('${order._id}')">Delete</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
+      </div>
+      <div class="form-group" id="carModelGroup" style="display: none;">
+        <label for="registerCarModel">Car Model</label>
+        <input type="text" id="registerCarModel" placeholder="Enter your car model" />
+      </div>
+      <button class="btn btn-primary" onclick="register()" style="width: 100%;">
+        <i class="fas fa-user-plus"></i> Register
+      </button>
+    </div>
 
-async function updateStatus(id, status) {
-  await fetch(`http://localhost:3000/order/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
-  });
-  loadOrders();
-}
+    <!-- User Dashboard -->
+    <div id="userDashboard" class="dashboard hidden">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <span class="dashboard-icon">💼</span>
+          <h2>Passenger Dashboard</h2>
+        </div>
+        <button class="btn btn-accent" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      
+      <div class="tab-container">
+        <div class="tab active" onclick="switchTab('userRideTab')">Book a Ride</div>
+        <div class="tab" onclick="switchTab('userProfileTab')">My Profile</div>
+      </div>
+      
+      <div id="userRideTab" class="tab-content active">
+        <div class="card card-lg">
+          <h3>Book a Ride</h3>
+          <form id="orderForm">
+            <div class="form-group">
+              <label for="pickup">Pickup Location</label>
+              <input type="text" id="pickup" placeholder="Enter pickup address" required />
+            </div>
+            <div class="form-group">
+              <label for="destination">Destination</label>
+              <input type="text" id="destination" placeholder="Enter destination address" required />
+            </div>
+            <div class="form-group">
+              <label for="selectDriver">Select Driver</label>
+              <select id="selectDriver" required></select>
+            </div>
+            <div class="form-group">
+              <label for="price">Ride Price (RM)</label>
+              <select id="price" required>
+                <option value="">Select price</option>
+                <option value="4">RM4</option>
+                <option value="8">RM8</option>
+                <option value="12">RM12</option>
+                <option value="16">RM16</option>
+                <option value="20">RM20</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" type="submit" style="width: 100%;">
+              <i class="fas fa-car"></i> Request Ride
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <div id="userProfileTab" class="tab-content">
+        <div class="card card-lg">
+          <div id="userProfileInfo" class="profile-container">
+            <div class="profile-header">
+              <div class="profile-avatar" id="userAvatar"></div>
+              <div>
+                <h3 id="userProfileName">Passenger Profile</h3>
+                <p>Welcome back to your ride-hailing experience</p>
+              </div>
+            </div>
+            
+            <div class="profile-details">
+              <div class="profile-detail">
+                <h4>Email Address</h4>
+                <p id="userProfileEmailDisplay">user@example.com</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Phone Number</h4>
+                <p id="userProfilePhoneDisplay">+60123456789</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Account Type</h4>
+                <p>Passenger</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Member Since</h4>
+                <p id="userJoinDate">2023</p>
+              </div>
+            </div>
+            
+            <div class="profile-actions">
+              <button id="editProfileBtn" class="btn btn-primary" onclick="enableProfileEdit()">
+                <i class="fas fa-edit"></i> Edit Profile
+              </button>
+            </div>
+          </div>
+          
+          <form id="userProfileForm" style="display: none;">
+            <h3>Edit Profile</h3>
+            <div class="form-group">
+              <label for="userProfileEmail">Email</label>
+              <input type="email" id="userProfileEmail" required />
+            </div>
+            <div class="form-group">
+              <label for="userProfilePassword">New Password (leave blank to keep current)</label>
+              <input type="password" id="userProfilePassword" />
+            </div>
+            <div class="form-group">
+              <label for="userProfilePhone">Phone Number</label>
+              <input type="text" id="userProfilePhone" />
+            </div>
+            <div class="profile-actions">
+              <button type="button" class="btn btn-primary" onclick="updateUserProfile()">
+                <i class="fas fa-save"></i> Save Changes
+              </button>
+              <button type="button" class="btn btn-outline" onclick="cancelEditProfile()">
+                <i class="fas fa-times"></i> Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-async function deleteOrder(id) {
-  await fetch(`http://localhost:3000/order/${id}`, { method: 'DELETE' });
-  loadOrders();
-}
+    <!-- Driver Dashboard -->
+    <div id="driverDashboard" class="dashboard hidden">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <span class="dashboard-icon">🚗</span>
+          <h2>Driver Dashboard</h2>
+        </div>
+        <button class="btn btn-accent" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      
+      <div class="tab-container">
+        <div class="tab active" onclick="switchTab('driverRideTab')">Ride Requests</div>
+        <div class="tab" onclick="switchTab('driverProfileTab')">My Profile</div>
+      </div>
+      
+      <div id="driverRideTab" class="tab-content active">
+        <div class="earnings-card">
+          <h3>Your Total Earnings</h3>
+          <div class="earnings-amount">RM<span id="driverEarnings">0.00</span></div>
+          <p>Earnings update when rides are completed</p>
+        </div>
+        
+        <h3>Your Ride Requests</h3>
+        <table id="driverOrdersTable">
+          <thead>
+            <tr>
+              <th>Passenger</th>
+              <th>Pickup</th>
+              <th>Destination</th>
+              <th>Price</th>
+              <th>Earning</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <div id="driverProfileTab" class="tab-content">
+        <div class="card card-lg">
+          <div id="driverProfileInfo" class="profile-container">
+            <div class="profile-header">
+              <div class="profile-avatar" id="driverAvatar"></div>
+              <div>
+                <h3 id="driverProfileNameDisplay">Driver Profile</h3>
+                <div id="driverStatusBadge" class="status-badge status-available">Available</div>
+              </div>
+            </div>
+            
+            <div class="driver-stats">
+              <div class="stat-card">
+                <div class="stat-value" id="totalEarnings">RM0.00</div>
+                <div class="stat-label">Total Earnings</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="completedRides">0</div>
+                <div class="stat-label">Completed Rides</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="avgRating">-</div>
+                <div class="stat-label">Average Rating</div>
+              </div>
+            </div>
+            
+            <div class="profile-details">
+              <div class="profile-detail">
+                <h4>Email Address</h4>
+                <p id="driverProfileEmailDisplay">driver@example.com</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Phone Number</h4>
+                <p id="driverProfilePhoneDisplay">+60123456789</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Car Model</h4>
+                <p id="driverCarModel">Toyota Camry</p>
+              </div>
+              <div class="profile-detail">
+                <h4>Driver Since</h4>
+                <p id="driverJoinDate">2023</p>
+              </div>
+            </div>
+            
+            <div class="profile-actions">
+              <button id="editDriverProfileBtn" class="btn btn-primary" onclick="enableDriverProfileEdit()">
+                <i class="fas fa-edit"></i> Edit Profile
+              </button>
+              <button id="toggleStatusBtn" class="btn btn-accent" onclick="toggleDriverStatus()">
+                <i class="fas fa-power-off"></i> Go Offline
+              </button>
+            </div>
+          </div>
+          
+          <form id="driverProfileForm" style="display: none;">
+            <h3>Edit Driver Profile</h3>
+            <div class="form-group">
+              <label for="driverProfileName">Driver Name</label>
+              <input type="text" id="driverProfileName" required />
+            </div>
+            <div class="form-group">
+              <label for="driverProfileCarModel">Car Model</label>
+              <input type="text" id="driverProfileCarModel" required />
+            </div>
+            <div class="form-group">
+              <label for="driverProfilePhone">Phone Number</label>
+              <input type="text" id="driverProfilePhone" />
+            </div>
+            <div class="form-group">
+              <label for="driverProfilePassword">New Password (leave blank to keep current)</label>
+              <input type="password" id="driverProfilePassword" />
+            </div>
+            <div class="profile-actions">
+              <button type="button" class="btn btn-primary" onclick="updateDriverProfile()">
+                <i class="fas fa-save"></i> Save Changes
+              </button>
+              <button type="button" class="btn btn-outline" onclick="cancelEditDriverProfile()">
+                <i class="fas fa-times"></i> Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-// Load drivers into edit dropdown
-async function loadEditDriverList() {
-  const res = await fetch('http://localhost:3000/drivers');
-  const drivers = await res.json();
-  const select = document.getElementById('editDriverSelect');
-  select.innerHTML = '<option value="">Select a Driver</option>';
-  drivers.forEach(driver => {
-    const option = document.createElement('option');
-    option.value = driver._id;
-    option.textContent = `${driver.driverId} (${driver.carModel})`;
-    select.appendChild(option);
-  });
-}
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="dashboard hidden">
+      <div class="dashboard-header">
+        <div class="dashboard-title">
+          <span class="dashboard-icon">🔒</span>
+          <h2>Admin Dashboard</h2>
+        </div>
+        <button class="btn btn-accent" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      
+      <div class="card">
+        <h3>User Management</h3>
+        <div class="form-group">
+          <label for="blockUserId">User ID</label>
+          <input type="text" id="blockUserId" placeholder="Enter user ID to block" />
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-primary" onclick="blockUser()">
+            <i class="fas fa-ban"></i> Block User
+          </button>
+          <button class="btn btn-outline" onclick="viewAllUsers()">
+            <i class="fas fa-users"></i> View All Users
+          </button>
+        </div>
+      </div>
+      
+      <div id="userList" class="user-list"></div>
+    </div>
+  </div>
 
-// Show selected driver info
-document.getElementById('editDriverSelect').addEventListener('change', async function () {
-  const id = this.value;
-  if (!id) return document.getElementById('editDriverForm').style.display = 'none';
+  <!-- JavaScript -->
+  <script>
+    let usernameGlobal = '';
+    let currentDriverId = '';
+    let currentDriverStatus = 'available';
+    const userId = localStorage.getItem('userId');
+    const role   = localStorage.getItem('role');
 
-  const res = await fetch('http://localhost:3000/drivers');
-  const drivers = await res.json();
-  const selectedDriver = drivers.find(d => d._id === id);
+    window.onload = () => {
+      if (!userId || !role) return showLogin();
+      usernameGlobal = localStorage.getItem('username') || '';
+      startDashboard();
+      loadProfile();
+    };
 
-  if (selectedDriver) {
-    document.getElementById('editDriverName').value = selectedDriver.driverId;
-    document.getElementById('editCarModel').value = selectedDriver.carModel;
-    document.getElementById('editPhone').value = selectedDriver.phone;
-    document.getElementById('editDriverForm').style.display = 'block';
-  }
-});
+    // Add event listener for role selection
+    document.getElementById('registerRole').addEventListener('change', function() {
+      const carModelGroup = document.getElementById('carModelGroup');
+      carModelGroup.style.display = this.value === 'driver' ? 'block' : 'none';
+    });
 
-// Update driver
-async function updateDriver() {
-  const id = document.getElementById('editDriverSelect').value;
-  const data = {
-    driverId: document.getElementById('editDriverName').value,
-    carModel: document.getElementById('editCarModel').value,
-    phone: document.getElementById('editPhone').value
-  };
-  const res = await fetch(`http://localhost:3000/drivers/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (res.ok) {
-    alert('Driver updated!');
-    loadDrivers();
-    loadEditDriverList();
-  } else {
-    alert('Failed to update driver');
-  }
-}
+    function showLogin() {
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('registerSection').classList.add('hidden');
+      document.querySelector('.auth-switcher').style.display = 'flex';
+    }
 
-// Delete driver
-async function deleteDriver() {
-  const id = document.getElementById('editDriverSelect').value;
-  if (!confirm('Are you sure you want to delete this driver?')) return;
-  const res = await fetch(`http://localhost:3000/drivers/${id}`, {
-    method: 'DELETE'
-  });
-  if (res.ok) {
-    alert('Driver deleted!');
-    document.getElementById('editDriverForm').style.display = 'none';
-    loadDrivers();
-    loadEditDriverList();
-  } else {
-    alert('Failed to delete driver');
-  }
-}
+    function showRegister() {
+      document.getElementById('registerSection').classList.remove('hidden');
+      document.getElementById('loginSection').classList.add('hidden');
+      document.querySelector('.auth-switcher').style.display = 'flex';
+    }
 
-window.onload = () => {
-  loadDrivers();
-  loadOrders();
-  loadEditDriverList();
-};
-</script>
+    function switchTab(tabId) {
+      // Hide all tab contents and remove active class from all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Show selected tab content and mark tab as active
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const res = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('username', data.username || email);
+        localStorage.setItem('phone', data.phone || '');
+        location.reload();
+      } catch (err) {
+        alert('Login failed: ' + err.message);
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      const phone = document.getElementById('registerPhone').value;
+      const role = document.getElementById('registerRole').value;
+      
+      if (!phone) return alert('Phone number is required');
+      if (!role) return alert('Please select a role.');
+
+      try {
+        const res = await fetch('http://localhost:3000/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            username: email, 
+            email, 
+            password, 
+            phone,
+            role 
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        if (role === 'driver') {
+          const carModel = document.getElementById('registerCarModel').value;
+          if (!carModel) return alert('Car model is required for drivers');
+          
+          const driverRes = await fetch('http://localhost:3000/drivers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              driverName: email, 
+              carModel: carModel, 
+              phone: phone,
+              status: 'available', // Set default status
+              earnings: 0
+            })
+          });
+          const driverData = await driverRes.json();
+          currentDriverId = driverData._id;
+        }
+
+        alert('Registration successful! You can now login.');
+        showLogin();
+      } catch (err) {
+        alert('Registration failed: ' + err.message);
+      }
+    }
+
+    async function startDashboard() {
+      // Hide auth switcher buttons after login
+      document.querySelector('.auth-switcher').style.display = 'none';
+      
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('registerSection').style.display = 'none';
+
+      if (role === 'user') {
+        document.getElementById('userDashboard').classList.remove('hidden');
+        loadDrivers();
+      } else if (role === 'driver') {
+        document.getElementById('driverDashboard').classList.remove('hidden');
+        loadDriverOrders();
+        loadDriverEarnings();
+      } else if (role === 'admin') {
+        document.getElementById('adminDashboard').classList.remove('hidden');
+      }
+    }
+
+    async function loadProfile() {
+      if (!userId) return;
+      
+      try {
+        const res = await fetch(`http://localhost:3000/users/${userId}`);
+        if (!res.ok) throw new Error('Failed to load profile');
+        
+        const user = await res.json();
+        
+        // Set avatar initials
+        const initials = user.email.charAt(0).toUpperCase();
+        if (role === 'user') {
+          document.getElementById('userAvatar').textContent = initials;
+        } else if (role === 'driver') {
+          document.getElementById('driverAvatar').textContent = initials;
+        }
+        
+        if (role === 'user') {
+          // Display user profile info
+          document.getElementById('userProfileName').textContent = user.email;
+          document.getElementById('userProfileEmailDisplay').textContent = user.email;
+          document.getElementById('userProfilePhoneDisplay').textContent = user.phone || 'Not set';
+          document.getElementById('userJoinDate').textContent = new Date().getFullYear();
+          
+          // Set form values
+          document.getElementById('userProfileEmail').value = user.email;
+          document.getElementById('userProfilePhone').value = user.phone || '';
+        } 
+        else if (role === 'driver') {
+          // Load driver-specific info
+          const driverRes = await fetch(`http://localhost:3000/drivers?email=${user.email}`);
+          const drivers = await driverRes.json();
+          const driver = drivers.find(d => d.driverName === user.email) || {};
+          currentDriverId = driver._id;
+          currentDriverStatus = driver.status || 'available';
+          
+          // Display driver profile info
+          document.getElementById('driverProfileNameDisplay').textContent = driver.driverName || user.email;
+          document.getElementById('driverProfileEmailDisplay').textContent = user.email;
+          document.getElementById('driverProfilePhoneDisplay').textContent = driver.phone || user.phone || 'Not set';
+          document.getElementById('driverCarModel').textContent = driver.carModel || 'Not set';
+          document.getElementById('driverJoinDate').textContent = new Date().getFullYear();
+          document.getElementById('totalEarnings').textContent = `RM${(driver.earnings || 0).toFixed(2)}`;
+          
+          // Update status badge
+          const statusBadge = document.getElementById('driverStatusBadge');
+          statusBadge.textContent = currentDriverStatus === 'available' ? 'Available' : 'Unavailable';
+          statusBadge.className = `status-badge status-${currentDriverStatus === 'available' ? 'available' : 'unavailable'}`;
+          
+          // Update toggle button
+          const toggleBtn = document.getElementById('toggleStatusBtn');
+          toggleBtn.innerHTML = currentDriverStatus === 'available' 
+            ? '<i class="fas fa-power-off"></i> Go Offline' 
+            : '<i class="fas fa-power-off"></i> Go Online';
+          toggleBtn.className = currentDriverStatus === 'available' 
+            ? 'btn btn-accent' 
+            : 'btn btn-primary';
+          
+          // Set form values
+          document.getElementById('driverProfileName').value = driver.driverName || user.email;
+          document.getElementById('driverProfileCarModel').value = driver.carModel || '';
+          document.getElementById('driverProfilePhone').value = driver.phone || user.phone || '';
+        }
+      } catch (err) {
+        console.error('Error loading profile:', err);
+      }
+    }
+
+    async function toggleDriverStatus() {
+      const newStatus = currentDriverStatus === 'available' ? 'unavailable' : 'available';
+      
+      try {
+        const res = await fetch(`http://localhost:3000/drivers/${currentDriverId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (!res.ok) throw new Error('Failed to update status');
+        
+        currentDriverStatus = newStatus;
+        loadProfile();
+      } catch (err) {
+        alert('Error updating status: ' + err.message);
+      }
+    }
+
+    function enableProfileEdit() {
+      document.getElementById('userProfileInfo').style.display = 'none';
+      document.getElementById('userProfileForm').style.display = 'block';
+      document.getElementById('editProfileBtn').style.display = 'none';
+    }
+
+    function cancelEditProfile() {
+      document.getElementById('userProfileInfo').style.display = 'block';
+      document.getElementById('userProfileForm').style.display = 'none';
+      document.getElementById('editProfileBtn').style.display = 'block';
+    }
+
+    async function updateUserProfile() {
+      const email = document.getElementById('userProfileEmail').value;
+      const password = document.getElementById('userProfilePassword').value;
+      const phone = document.getElementById('userProfilePhone').value;
+      
+      try {
+        const updates = { email, phone };
+        if (password) updates.password = password;
+        
+        const res = await fetch(`http://localhost:3000/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (!res.ok) throw new Error('Update failed');
+        
+        alert('Profile updated successfully!');
+        usernameGlobal = email;
+        localStorage.setItem('username', email);
+        cancelEditProfile();
+        loadProfile();
+      } catch (err) {
+        alert('Failed to update profile: ' + err.message);
+      }
+    }
+
+    function enableDriverProfileEdit() {
+      document.getElementById('driverProfileInfo').style.display = 'none';
+      document.getElementById('driverProfileForm').style.display = 'block';
+      document.getElementById('editDriverProfileBtn').style.display = 'none';
+      document.getElementById('toggleStatusBtn').style.display = 'none';
+    }
+
+    function cancelEditDriverProfile() {
+      document.getElementById('driverProfileInfo').style.display = 'block';
+      document.getElementById('driverProfileForm').style.display = 'none';
+      document.getElementById('editDriverProfileBtn').style.display = 'block';
+      document.getElementById('toggleStatusBtn').style.display = 'block';
+    }
+
+    async function updateDriverProfile() {
+      const driverName = document.getElementById('driverProfileName').value;
+      const carModel = document.getElementById('driverProfileCarModel').value;
+      const phone = document.getElementById('driverProfilePhone').value;
+      const password = document.getElementById('driverProfilePassword').value;
+      
+      try {
+        // First update user info
+        const userUpdates = { email: driverName };
+        if (password) userUpdates.password = password;
+        
+        await fetch(`http://localhost:3000/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userUpdates)
+        });
+        
+        // Then update driver info
+        const res = await fetch('http://localhost:3000/drivers');
+        const drivers = await res.json();
+        const driver = drivers.find(d => d.driverName === usernameGlobal);
+        
+        if (driver) {
+          await fetch(`http://localhost:3000/drivers/${driver._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ driverName, carModel, phone })
+          });
+        }
+        
+        alert('Profile updated successfully!');
+        usernameGlobal = driverName;
+        localStorage.setItem('username', driverName);
+        cancelEditDriverProfile();
+        loadProfile();
+      } catch (err) {
+        alert('Failed to update profile: ' + err.message);
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      document.querySelector('.auth-switcher').style.display = 'flex'; // Show auth buttons again
+      location.reload();
+    }
+
+    async function loadDrivers() {
+      const res = await fetch('http://localhost:3000/drivers');
+      const drivers = await res.json();
+      const select = document.getElementById('selectDriver');
+      select.innerHTML = '<option value="">Select Driver</option>';
+
+      const availableDrivers = drivers.filter(driver => driver.status === 'available');
+
+      if (availableDrivers.length === 0) {
+        const option = document.createElement('option');
+        option.disabled = true;
+        option.textContent = 'No drivers available';
+        select.appendChild(option);
+        return;
+      }
+
+      availableDrivers.forEach(driver => {
+        const option = document.createElement('option');
+        option.value = driver._id;
+        option.textContent = `${driver.driverName} (${driver.carModel})`;
+        option.setAttribute('data-driverName', driver.driverName);
+        option.setAttribute('data-carModel', driver.carModel);
+        select.appendChild(option);
+      });
+    }
+
+    document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const pickup = document.getElementById('pickup').value;
+      const destination = document.getElementById('destination').value;
+      const price = document.getElementById('price').value;
+      const select = document.getElementById('selectDriver');
+      const selectedOption = select.selectedOptions[0];
+
+      if (!selectedOption || !selectedOption.value) return alert('Please select a driver.');
+      if (!price) return alert('Please select a price.');
+
+      const driverId = selectedOption.value;
+      const driverName = selectedOption.getAttribute('data-driverName');
+      const carModel = selectedOption.getAttribute('data-carModel');
+
+      await fetch('http://localhost:3000/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: usernameGlobal,
+          phone: '',
+          driverId,
+          driverName,
+          carModel,
+          pickup,
+          destination,
+          price
+        })
+      });
+
+      alert('Order placed!');
+      e.target.reset();
+    });
+
+    async function loadDriverOrders() {
+      try {
+        // Fetch all orders
+        const ordersRes = await fetch('http://localhost:3000/orders');
+        const orders    = await ordersRes.json();
+
+        const tbody = document.querySelector('#driverOrdersTable tbody');
+        tbody.innerHTML = '';
+
+        // Filter just your orders, build rows & accumulate total
+        let totalEarnings = 0;
+        let completedRides = 0;
+        orders
+          .filter(o => o.driverName === usernameGlobal)
+          .forEach(order => {
+            // if completed, add to total
+            if (order.status === 'completed') {
+              totalEarnings += (order.earning ?? order.price);
+              completedRides++;
+            }
+
+            const earningDisplay = order.status === 'completed'
+              ? `RM${(order.earning ?? order.price).toFixed(2)}`
+              : '–';
+
+            const statusOptions = `
+              <select class="status-select" id="status-${order._id}">
+                <option value="requested" ${order.status==='requested' ? 'selected':''}>Requested</option>
+                <option value="accepted"  ${order.status==='accepted'  ? 'selected':''}>Accepted</option>
+                <option value="completed" ${order.status==='completed' ? 'selected':''}>Completed</option>
+                <option value="cancelled" ${order.status==='cancelled' ? 'selected':''}>Cancelled</option>
+              </select>
+            `;
+            const updateBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}')">Update</button>`;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${order.username}</td>
+              <td>${order.pickup}</td>
+              <td>${order.destination}</td>
+              <td>RM${order.price.toFixed(2)}</td>
+              <td>${earningDisplay}</td>
+              <td>${statusOptions}</td>
+              <td>${updateBtn}</td>
+            `;
+            tbody.appendChild(row);
+          });
+
+        // Update the Total Earnings card
+        document.getElementById('driverEarnings').textContent = totalEarnings.toFixed(2);
+        document.getElementById('completedRides').textContent = completedRides;
+      } catch (err) {
+        console.error('Error loading driver orders:', err);
+        alert('Failed to load driver orders');
+      }
+    }
+
+    async function updateOrderStatus(orderId) {
+      const selectedStatus = document.getElementById(`status-${orderId}`).value;
+      try {
+        const res = await fetch(`http://localhost:3000/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ status: selectedStatus })
+        });
+        if (!res.ok) throw new Error('Update failed');
+        alert('Order status updated to ' + selectedStatus + '!');
+        await loadDriverOrders();             // reload rows **and** total
+      } catch (err) {
+        console.error(err);
+        alert('Failed to update order status: ' + err.message);
+      }
+    }
+
+    async function loadDriverEarnings() {
+      try {
+        const response = await fetch(`http://localhost:3000/drivers/${userId}/earnings`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch earnings');
+        }
+        const data = await response.json();
+        document.getElementById('driverEarnings').textContent = 'RM' + (data.earnings?.toFixed(2) || '0.00');
+      } catch (error) {
+        console.error('Error loading earnings:', error);
+      }
+    }
+
+    async function blockUser() {
+      const id = document.getElementById('blockUserId').value;
+      if (!id) return alert('Enter a User ID!');
+
+      const res = await fetch(`http://localhost:3000/admin/users/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.status === 204) {
+        alert('User deleted successfully!');
+        viewAllUsers(); // refresh list
+      } else {
+        const error = await res.json();
+        alert('Failed to delete user: ' + error.error);
+      }
+    }
+
+    async function viewAllUsers() {
+      const res = await fetch('http://localhost:3000/users');
+      const users = await res.json();
+      
+      let html = '<table>';
+      html += `
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Email</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+      
+      users.forEach(user => {
+        html += `
+          <tr>
+            <td>${user._id}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      document.getElementById('userList').innerHTML = html;
+    }
+  </script>
 </body>
 </html>
