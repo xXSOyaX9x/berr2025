@@ -1,7 +1,9 @@
-// index.js
 const cors = require('cors');
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
@@ -29,19 +31,53 @@ const checkDB = (req, res, next) => {
   next();
 };
 
-// User Registration
+// Authentication Middleware
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Make sure this splits correctly
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    // Add more specific error logging
+    console.error("JWT Verification Error:", err.message);
+    res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+const authorize = (roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    console.log(`Access denied. Required roles: ${roles}, User role: ${req.user.role}`);
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  next();
+};
+
+// User Registration with Password Hashing
 app.post('/users', checkDB, async (req, res) => {
   try {
     const { username, email, password, phone, role = 'user' } = req.body;
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required' });
     }
+
+    // Validate role if provided
+    if (role && !['user', 'driver', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const result = await db.collection('users').insertOne({ 
       username, 
       email, 
-      password, 
+      password: hashedPassword, 
       phone,
-      role,
+      role, // This will use either the provided role or default to 'user'
       createdAt: new Date()
     });
     res.status(201).json({ message: 'User registered', userId: result.insertedId });
@@ -50,29 +86,86 @@ app.post('/users', checkDB, async (req, res) => {
   }
 });
 
-// Get single user
-app.get('/users/:id', checkDB, async (req, res) => {
+// User Login with JWT
+app.post('/auth/login', checkDB, async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and Password are required.' });
+  }
+
   try {
+    const user = await db.collection('users').findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Compare hashed password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    res.status(200).json({ 
+      message: 'Login successful', 
+      token,
+      userId: user._id, 
+      role: user.role, 
+      username: user.username || email,
+      phone: user.phone || ''
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Protected User Profile
+app.get('/users/:id', checkDB, authenticate, async (req, res) => {
+  try {
+    // Only allow users to access their own profile unless admin
+    if (req.user.role !== 'admin' && req.user.userId !== req.params.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
     const user = await db.collection('users').findOne({ 
       _id: new ObjectId(req.params.id) 
     });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.status(200).json(user);
+    
+    // Don't return password hash
+    const { password, ...userWithoutPassword } = user;
+    res.status(200).json(userWithoutPassword);
   } catch (err) {
     res.status(400).json({ error: 'Invalid user ID' });
   }
 });
 
-// Update user profile
-app.patch('/users/:id', checkDB, async (req, res) => {
+// Update user profile (protected)
+app.patch('/users/:id', checkDB, authenticate, async (req, res) => {
   try {
+    // Only allow users to update their own profile unless admin
+    if (req.user.role !== 'admin' && req.user.userId !== req.params.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
     const { email, password, phone } = req.body;
     const updates = {};
     if (email) updates.email = email;
-    if (password) updates.password = password;
     if (phone) updates.phone = phone;
+
+    // Handle password update with hashing
+    if (password) {
+      const saltRounds = 10;
+      updates.password = await bcrypt.hash(password, saltRounds);
+    }
 
     const result = await db.collection('users').updateOne(
       { _id: new ObjectId(req.params.id) },
@@ -89,28 +182,35 @@ app.patch('/users/:id', checkDB, async (req, res) => {
   }
 });
 
-// User Login
-app.post('/auth/login', checkDB, async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and Password are required.' });
-  }
-  const user = await db.collection('users').findOne({ email, password });
-  if (user) {
-    res.status(200).json({ 
-      message: 'Login successful', 
-      userId: user._id, 
-      role: user.role, 
-      username: user.username || email,
-      phone: user.phone || ''
-    });
-  } else {
-    res.status(401).json({ error: 'Unauthorized' });
-  }
+// Admin-only routes
+app.get('/users', checkDB, authenticate, authorize(['admin']), async (req, res) => {
+  const users = await db.collection('users').find().toArray();
+  // Remove passwords from response
+  const sanitizedUsers = users.map(user => {
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  });
+  res.status(200).json(sanitizedUsers);
 });
 
-// Driver Routes
-app.post('/drivers', checkDB, async (req, res) => {
+app.delete('/admin/users/:id', checkDB, authenticate, authorize(['admin']), async (req, res) => {
+  const id = req.params.id;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid user ID format' });
+  }
+
+  const result = await db.collection('users').deleteOne({ _id: new ObjectId(id) });
+  
+  if (result.deletedCount === 0) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  res.status(204).send();
+});
+
+// Driver Routes with Authentication
+app.post('/drivers', checkDB, authenticate, authorize(['admin']), async (req, res) => {
   const { driverName, carModel, phone, status = "available" } = req.body;
   if (!driverName || !carModel || !phone) {
     return res.status(400).json({ error: 'Driver name, car model and phone are required' });
@@ -126,8 +226,8 @@ app.post('/drivers', checkDB, async (req, res) => {
   res.status(201).json({ message: 'Driver created', driverId: result.insertedId });
 });
 
-// Get all drivers (with optional status filter)
-app.get('/drivers', checkDB, async (req, res) => {
+// Get all drivers (protected)
+app.get('/drivers', checkDB, authenticate, async (req, res) => {
   try {
     const { status } = req.query;
     const query = status ? { status } : {};
@@ -138,85 +238,18 @@ app.get('/drivers', checkDB, async (req, res) => {
   }
 });
 
-// Get available drivers only
-app.get('/drivers/available', checkDB, async (req, res) => {
-  try {
-    const drivers = await db.collection('drivers').find({ status: 'available' }).toArray();
-    res.status(200).json(drivers);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch available drivers' });
-  }
-});
-
-// Get driver by email
-app.get('/drivers/email', checkDB, async (req, res) => {
-  try {
-    const { email } = req.query;
-    if (!email) {
-      return res.status(400).json({ error: 'Email query parameter is required' });
-    }
-    const driver = await db.collection('drivers').findOne({ driverName: email });
-    if (!driver) {
-      return res.status(404).json({ error: 'Driver not found' });
-    }
-    res.status(200).json(driver);
-  } catch (err) {
-    res.status(400).json({ error: 'Failed to fetch driver' });
-  }
-});
-
-// Update driver profile
-app.patch('/drivers/:id', checkDB, async (req, res) => {
-  try {
-    const { driverName, carModel, phone } = req.body;
-    const updates = {};
-    if (driverName) updates.driverName = driverName;
-    if (carModel) updates.carModel = carModel;
-    if (phone) updates.phone = phone;
-
-    const result = await db.collection('drivers').updateOne(
-      { _id: new ObjectId(req.params.id) },
-      { $set: updates }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Driver not found' });
-    }
-
-    res.status(200).json({ message: 'Driver profile updated successfully' });
-  } catch (err) {
-    res.status(400).json({ error: 'Failed to update driver profile' });
-  }
-});
-
-// Update Driver Status
-app.patch('/drivers/:id/status', checkDB, async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-  try {
-    if (!['available', 'unavailable', 'on-ride'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
-    }
-
-    const result = await db.collection('drivers').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status } }
-    );
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Driver not found' });
-    }
-    res.status(200).json({ message: 'Status updated', newStatus: status });
-  } catch (err) {
-    res.status(400).json({ error: 'Bad request' });
-  }
-});
-
-// Order Routes
-app.post('/orders', checkDB, async (req, res) => {
-  const { username, driverId, driverName, carModel, pickup, destination, price, status = "requested" } = req.body;
+// Order Routes with Authentication
+app.post('/orders', checkDB, authenticate, async (req, res) => {
+  const { driverId, pickup, destination, price, status = "requested" } = req.body;
   const parsedPrice = parseFloat(price) || 0;
   
   try {
+    // Get user making the request
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.userId) });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Check if driver is available
     const driver = await db.collection('drivers').findOne({ _id: new ObjectId(driverId) });
     if (!driver) {
@@ -228,10 +261,11 @@ app.post('/orders', checkDB, async (req, res) => {
 
     // Create the order
     const result = await db.collection('orders').insertOne({
-      username, 
+      userId: req.user.userId,
+      username: user.username || user.email, 
       driverId, 
-      driverName, 
-      carModel, 
+      driverName: driver.driverName, 
+      carModel: driver.carModel, 
       pickup, 
       destination, 
       price: parsedPrice, 
@@ -251,89 +285,10 @@ app.post('/orders', checkDB, async (req, res) => {
   }
 });
 
-// Get all Orders
-app.get('/orders', checkDB, async (req, res) => {
+// Get all Orders (admin only)
+app.get('/orders', checkDB, authenticate, authorize(['admin']), async (req, res) => {
   const orders = await db.collection('orders').find().toArray();
   res.status(200).json(orders);
-});
-
-// Update Order Status
-app.patch('/orders/:id', checkDB, async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  try {
-    const order = await db.collection('orders').findOne({ _id: new ObjectId(id) });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    const updates = { status };
-    if (status === 'completed' && order.status !== 'completed') {
-      updates.earning = order.price;
-      updates.completedAt = new Date();
-    }
-
-    await db.collection('orders').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updates }
-    );
-
-    // If order is completed or cancelled, set driver back to available
-    if ((status === 'completed' || status === 'cancelled') && order.status !== 'completed') {
-      await db.collection('drivers').updateOne(
-        { _id: new ObjectId(order.driverId) },
-        { $set: { status: 'available' } }
-      );
-    }
-
-    if (status === 'completed' && order.status !== 'completed') {
-      await db.collection('drivers').updateOne(
-        { _id: new ObjectId(order.driverId) },
-        { $inc: { earnings: order.price } }
-      );
-    }
-
-    res.status(200).json({ message: 'Order status updated' });
-  } catch (err) {
-    res.status(400).json({ error: 'Bad request' });
-  }
-});
-
-// Get Driver Earnings
-app.get('/drivers/:id/earnings', checkDB, async (req, res) => {
-  try {
-    const driver = await db.collection('drivers').findOne(
-      { _id: new ObjectId(req.params.id) },
-      { projection: { earnings: 1 } }
-    );
-    if (!driver) {
-      return res.status(404).json({ error: 'Driver not found' });
-    }
-    res.status(200).json({ earnings: driver.earnings || 0 });
-  } catch (err) {
-    res.status(400).json({ error: 'Bad request' });
-  }
-});
-
-// Admin: Get All Users
-app.get('/users', checkDB, async (req, res) => {
-  const users = await db.collection('users').find().toArray();
-  res.status(200).json(users);
-});
-
-// Admin: Delete User
-app.delete('/admin/users/:id', checkDB, async (req, res) => {
-  const id = req.params.id;
-
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid user ID format' });
-  }
-
-  const result = await db.collection('users').deleteOne({ _id: new ObjectId(id) });
-  
-  if (result.deletedCount === 0) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  
-  res.status(204).send();
 });
 
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
