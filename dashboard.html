@@ -436,6 +436,24 @@
         justify-content: center;
       }
     }
+
+    .status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-available {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-unavailable {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
   </style>
 </head>
 
@@ -744,36 +762,60 @@
     </div>
 
     <!-- Admin Dashboard -->
-    <div id="adminDashboard" class="dashboard hidden">
-      <div class="dashboard-header">
-        <div class="dashboard-title">
-          <span class="dashboard-icon">🔒</span>
-          <h2>Admin Dashboard</h2>
-        </div>
-        <button class="btn btn-accent" onclick="logout()">
-          <i class="fas fa-sign-out-alt"></i> Logout
+<div id="adminDashboard" class="dashboard hidden">
+  <div class="dashboard-header">
+    <div class="dashboard-title">
+      <span class="dashboard-icon">🔒</span>
+      <h2>Admin Dashboard</h2>
+    </div>
+    <button class="btn btn-accent" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+  </div>
+  
+  <div class="tab-container">
+    <div class="tab active" onclick="switchTab('adminUsersTab')">User Management</div>
+    <div class="tab" onclick="switchTab('adminOrdersTab')">All Orders</div>
+    <div class="tab" onclick="switchTab('adminAnalyticsTab')">Passenger Analytics</div>
+  </div>
+  
+  <div id="adminUsersTab" class="tab-content active">
+    <div class="card">
+      <h3>User Management</h3>
+      <div class="form-group">
+        <label for="blockUserId">User ID</label>
+        <input type="text" id="blockUserId" placeholder="Enter user ID to block" />
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="blockUser()">
+          <i class="fas fa-ban"></i> Block User
         </button>
       </div>
-      
-      <div class="card">
-        <h3>User Management</h3>
-        <div class="form-group">
-          <label for="blockUserId">User ID</label>
-          <input type="text" id="blockUserId" placeholder="Enter user ID to block" />
-        </div>
-        <div style="display: flex; gap: 10px;">
-          <button class="btn btn-primary" onclick="blockUser()">
-            <i class="fas fa-ban"></i> Block User
-          </button>
-          <button class="btn btn-outline" onclick="viewAllUsers()">
-            <i class="fas fa-users"></i> View All Users
-          </button>
-        </div>
-      </div>
-      
-      <div id="userList" class="user-list"></div>
     </div>
+    
+    <div id="userList" class="user-list"></div>
   </div>
+  
+  <div id="adminOrdersTab" class="tab-content">
+    <div class="card">
+      <h3>All Orders</h3>
+      <button class="btn btn-primary" onclick="viewAllOrders()">
+        <i class="fas fa-sync-alt"></i> Refresh Orders
+      </button>
+    </div>
+    <div id="orderList" class="user-list"></div>
+  </div>
+</div>
+
+<div id="adminAnalyticsTab" class="tab-content">
+  <div class="card">
+    <h3>Passenger Analytics</h3>
+    <button class="btn btn-primary" onclick="loadPassengerAnalytics()">
+      <i class="fas fa-chart-bar"></i> Load Analytics
+    </button>
+  </div>
+  <div id="analyticsResults" class="card card-lg" style="margin-top: 20px;"></div>
+</div>
 
   <!-- JavaScript -->
   <script>
@@ -833,7 +875,8 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
+        
+        localStorage.setItem('token', data.token);
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('role', data.role);
         localStorage.setItem('username', data.username || email);
@@ -844,55 +887,83 @@
       }
     }
 
-    async function register() {
-      const email = document.getElementById('registerEmail').value;
-      const password = document.getElementById('registerPassword').value;
-      const phone = document.getElementById('registerPhone').value;
-      const role = document.getElementById('registerRole').value;
+async function register() {
+  const email = document.getElementById('registerEmail').value;
+  const password = document.getElementById('registerPassword').value;
+  const phone = document.getElementById('registerPhone').value;
+  const role = document.getElementById('registerRole').value;
+  
+  if (!phone) return alert('Phone number is required');
+  if (!role) return alert('Please select a role.');
+
+  try {
+    // Register the user first
+    const res = await fetch('http://localhost:3000/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        username: email, 
+        email, 
+        password, 
+        phone,
+        role 
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    // Login the user to get token
+    const loginRes = await fetch('http://localhost:3000/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) throw new Error(loginData.error);
+    
+    // Store the token
+    localStorage.setItem('token', loginData.token);
+    localStorage.setItem('userId', loginData.userId);
+    localStorage.setItem('role', loginData.role);
+    localStorage.setItem('username', loginData.username || email);
+    localStorage.setItem('phone', loginData.phone || phone);
+
+    // If driver, create driver profile
+    if (role === 'driver') {
+      const carModel = document.getElementById('registerCarModel').value;
+      if (!carModel) return alert('Car model is required for drivers');
       
-      if (!phone) return alert('Phone number is required');
-      if (!role) return alert('Please select a role.');
-
-      try {
-        const res = await fetch('http://localhost:3000/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            username: email, 
-            email, 
-            password, 
-            phone,
-            role 
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-
-        if (role === 'driver') {
-          const carModel = document.getElementById('registerCarModel').value;
-          if (!carModel) return alert('Car model is required for drivers');
-          
-          const driverRes = await fetch('http://localhost:3000/drivers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              driverName: email, 
-              carModel: carModel, 
-              phone: phone,
-              status: 'available', // Set default status
-              earnings: 0
-            })
-          });
-          const driverData = await driverRes.json();
-          currentDriverId = driverData._id;
-        }
-
-        alert('Registration successful! You can now login.');
-        showLogin();
-      } catch (err) {
-        alert('Registration failed: ' + err.message);
+      const driverRes = await fetch('http://localhost:3000/drivers', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${loginData.token}`
+        },
+        body: JSON.stringify({ 
+          userId: loginData.userId, // Link to user account
+          driverName: email, 
+          carModel, 
+          phone,
+          status: 'available'
+        })
+      });
+      
+      if (!driverRes.ok) {
+        const error = await driverRes.json();
+        throw new Error(error.error || 'Failed to create driver profile');
       }
+      
+      const driverData = await driverRes.json();
+      currentDriverId = driverData.driverId;
     }
+
+    alert('Registration successful!');
+    startDashboard();
+    loadProfile();
+  } catch (err) {
+    alert('Registration failed: ' + err.message);
+  }
+}
 
     async function startDashboard() {
       // Hide auth switcher buttons after login
@@ -910,76 +981,82 @@
         loadDriverEarnings();
       } else if (role === 'admin') {
         document.getElementById('adminDashboard').classList.remove('hidden');
+  viewAllUsers();
       }
     }
 
-    async function loadProfile() {
-      if (!userId) return;
-      
-      try {
-        const res = await fetch(`http://localhost:3000/users/${userId}`);
-        if (!res.ok) throw new Error('Failed to load profile');
-        
-        const user = await res.json();
-        
-        // Set avatar initials
-        const initials = user.email.charAt(0).toUpperCase();
-        if (role === 'user') {
-          document.getElementById('userAvatar').textContent = initials;
-        } else if (role === 'driver') {
-          document.getElementById('driverAvatar').textContent = initials;
-        }
-        
-        if (role === 'user') {
-          // Display user profile info
-          document.getElementById('userProfileName').textContent = user.email;
-          document.getElementById('userProfileEmailDisplay').textContent = user.email;
-          document.getElementById('userProfilePhoneDisplay').textContent = user.phone || 'Not set';
-          document.getElementById('userJoinDate').textContent = new Date().getFullYear();
-          
-          // Set form values
-          document.getElementById('userProfileEmail').value = user.email;
-          document.getElementById('userProfilePhone').value = user.phone || '';
-        } 
-        else if (role === 'driver') {
-          // Load driver-specific info
-          const driverRes = await fetch(`http://localhost:3000/drivers?email=${user.email}`);
-          const drivers = await driverRes.json();
-          const driver = drivers.find(d => d.driverName === user.email) || {};
-          currentDriverId = driver._id;
-          currentDriverStatus = driver.status || 'available';
-          
-          // Display driver profile info
-          document.getElementById('driverProfileNameDisplay').textContent = driver.driverName || user.email;
-          document.getElementById('driverProfileEmailDisplay').textContent = user.email;
-          document.getElementById('driverProfilePhoneDisplay').textContent = driver.phone || user.phone || 'Not set';
-          document.getElementById('driverCarModel').textContent = driver.carModel || 'Not set';
-          document.getElementById('driverJoinDate').textContent = new Date().getFullYear();
-          document.getElementById('totalEarnings').textContent = `RM${(driver.earnings || 0).toFixed(2)}`;
-          
-          // Update status badge
-          const statusBadge = document.getElementById('driverStatusBadge');
-          statusBadge.textContent = currentDriverStatus === 'available' ? 'Available' : 'Unavailable';
-          statusBadge.className = `status-badge status-${currentDriverStatus === 'available' ? 'available' : 'unavailable'}`;
-          
-          // Update toggle button
-          const toggleBtn = document.getElementById('toggleStatusBtn');
-          toggleBtn.innerHTML = currentDriverStatus === 'available' 
-            ? '<i class="fas fa-power-off"></i> Go Offline' 
-            : '<i class="fas fa-power-off"></i> Go Online';
-          toggleBtn.className = currentDriverStatus === 'available' 
-            ? 'btn btn-accent' 
-            : 'btn btn-primary';
-          
-          // Set form values
-          document.getElementById('driverProfileName').value = driver.driverName || user.email;
-          document.getElementById('driverProfileCarModel').value = driver.carModel || '';
-          document.getElementById('driverProfilePhone').value = driver.phone || user.phone || '';
-        }
-      } catch (err) {
-        console.error('Error loading profile:', err);
-      }
+async function loadProfile() {
+  if (!userId) return;
+  
+  try {
+    const res = await fetch(`http://localhost:3000/users/${userId}`);
+    if (!res.ok) throw new Error('Failed to load profile');
+    
+    const user = await res.json();
+    
+    // Set avatar initials
+    const initials = user.email.charAt(0).toUpperCase();
+    if (role === 'user') {
+      document.getElementById('userAvatar').textContent = initials;
+    } else if (role === 'driver') {
+      document.getElementById('driverAvatar').textContent = initials;
     }
+    
+    if (role === 'user') {
+      // Display user profile info
+      document.getElementById('userProfileName').textContent = user.email;
+      document.getElementById('userProfileEmailDisplay').textContent = user.email;
+      document.getElementById('userProfilePhoneDisplay').textContent = user.phone || 'Not set';
+      document.getElementById('userJoinDate').textContent = new Date(user.createdAt).getFullYear();
+      
+      // Set form values
+      document.getElementById('userProfileEmail').value = user.email;
+      document.getElementById('userProfilePhone').value = user.phone || '';
+    } 
+    else if (role === 'driver') {
+      // Load driver-specific info - now query by userId
+      const driverRes = await fetch(`http://localhost:3000/drivers?userId=${userId}`);
+      const driver = await driverRes.json();
+      
+      if (!driver) {
+        console.error('Driver profile not found for user:', userId);
+        return;
+      }
+      
+      currentDriverId = driver._id;
+      currentDriverStatus = driver.status || 'available';
+      
+      // Display driver profile info
+      document.getElementById('driverProfileNameDisplay').textContent = driver.driverName || user.email;
+      document.getElementById('driverProfileEmailDisplay').textContent = user.email;
+      document.getElementById('driverProfilePhoneDisplay').textContent = driver.phone || user.phone || 'Not set';
+      document.getElementById('driverCarModel').textContent = driver.carModel || 'Not set';
+      document.getElementById('driverJoinDate').textContent = new Date(driver.createdAt || user.createdAt).getFullYear();
+      document.getElementById('totalEarnings').textContent = `RM${(driver.earnings || 0).toFixed(2)}`;
+      
+      // Update status badge
+      const statusBadge = document.getElementById('driverStatusBadge');
+      statusBadge.textContent = currentDriverStatus === 'available' ? 'Available' : 'Unavailable';
+      statusBadge.className = `status-badge status-${currentDriverStatus === 'available' ? 'available' : 'unavailable'}`;
+      
+      // Update toggle button
+      const toggleBtn = document.getElementById('toggleStatusBtn');
+      toggleBtn.innerHTML = currentDriverStatus === 'available' 
+        ? '<i class="fas fa-power-off"></i> Go Offline' 
+        : '<i class="fas fa-power-off"></i> Go Online';
+      toggleBtn.className = currentDriverStatus === 'available' 
+        ? 'btn btn-accent' 
+        : 'btn btn-primary';
+      
+      // Set form values
+      document.getElementById('driverProfileName').value = driver.driverName || user.email;
+      document.getElementById('driverProfileCarModel').value = driver.carModel || '';
+      document.getElementById('driverProfilePhone').value = driver.phone || user.phone || '';
+    }
+  } catch (err) {
+    console.error('Error loading profile:', err);
+  }
+}
 
     async function toggleDriverStatus() {
       const newStatus = currentDriverStatus === 'available' ? 'unavailable' : 'available';
@@ -1013,31 +1090,41 @@
     }
 
     async function updateUserProfile() {
-      const email = document.getElementById('userProfileEmail').value;
-      const password = document.getElementById('userProfilePassword').value;
-      const phone = document.getElementById('userProfilePhone').value;
-      
-      try {
-        const updates = { email, phone };
-        if (password) updates.password = password;
-        
-        const res = await fetch(`http://localhost:3000/users/${userId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates)
-        });
-        
-        if (!res.ok) throw new Error('Update failed');
-        
-        alert('Profile updated successfully!');
-        usernameGlobal = email;
-        localStorage.setItem('username', email);
-        cancelEditProfile();
-        loadProfile();
-      } catch (err) {
-        alert('Failed to update profile: ' + err.message);
-      }
+  const email = document.getElementById('userProfileEmail').value;
+  const password = document.getElementById('userProfilePassword').value;
+  const phone = document.getElementById('userProfilePhone').value;
+  
+  try {
+    const updates = { email, phone };
+    if (password) updates.password = password;
+    
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch(`http://localhost:3000/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(updates)
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'Update failed');
     }
+    
+    alert('Profile updated successfully!');
+    usernameGlobal = email;
+    localStorage.setItem('username', email);
+    localStorage.setItem('phone', phone || '');
+    cancelEditProfile();
+    loadProfile();
+  } catch (err) {
+    alert('Failed to update profile: ' + err.message);
+  }
+}
 
     function enableDriverProfileEdit() {
       document.getElementById('driverProfileInfo').style.display = 'none';
@@ -1054,44 +1141,60 @@
     }
 
     async function updateDriverProfile() {
-      const driverName = document.getElementById('driverProfileName').value;
-      const carModel = document.getElementById('driverProfileCarModel').value;
-      const phone = document.getElementById('driverProfilePhone').value;
-      const password = document.getElementById('driverProfilePassword').value;
-      
-      try {
-        // First update user info
-        const userUpdates = { email: driverName };
-        if (password) userUpdates.password = password;
-        
-        await fetch(`http://localhost:3000/users/${userId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userUpdates)
-        });
-        
-        // Then update driver info
-        const res = await fetch('http://localhost:3000/drivers');
-        const drivers = await res.json();
-        const driver = drivers.find(d => d.driverName === usernameGlobal);
-        
-        if (driver) {
-          await fetch(`http://localhost:3000/drivers/${driver._id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ driverName, carModel, phone })
-          });
-        }
-        
-        alert('Profile updated successfully!');
-        usernameGlobal = driverName;
-        localStorage.setItem('username', driverName);
-        cancelEditDriverProfile();
-        loadProfile();
-      } catch (err) {
-        alert('Failed to update profile: ' + err.message);
-      }
+  const driverName = document.getElementById('driverProfileName').value;
+  const carModel = document.getElementById('driverProfileCarModel').value;
+  const phone = document.getElementById('driverProfilePhone').value;
+  const password = document.getElementById('driverProfilePassword').value;
+  
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    // First update user info
+    const userUpdates = { email: driverName };
+    if (password) userUpdates.password = password;
+    
+    const userRes = await fetch(`http://localhost:3000/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userUpdates)
+    });
+    
+    if (!userRes.ok) {
+      const error = await userRes.json();
+      throw new Error(error.error || 'User update failed');
     }
+    
+    // Then update driver info - use currentDriverId from loadProfile
+    if (!currentDriverId) throw new Error('Driver profile not loaded');
+    
+    const driverRes = await fetch(`http://localhost:3000/drivers/${currentDriverId}`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ driverName, carModel, phone })
+    });
+    
+    if (!driverRes.ok) {
+      const error = await driverRes.json();
+      throw new Error(error.error || 'Driver update failed');
+    }
+    
+    alert('Profile updated successfully!');
+    usernameGlobal = driverName;
+    localStorage.setItem('username', driverName);
+    localStorage.setItem('phone', phone || '');
+    cancelEditDriverProfile();
+    loadProfile();
+  } catch (err) {
+    alert('Failed to update profile: ' + err.message);
+  }
+}
 
     function logout() {
       localStorage.clear();
@@ -1099,123 +1202,166 @@
       location.reload();
     }
 
-    async function loadDrivers() {
-      const res = await fetch('http://localhost:3000/drivers');
-      const drivers = await res.json();
-      const select = document.getElementById('selectDriver');
-      select.innerHTML = '<option value="">Select Driver</option>';
-
-      const availableDrivers = drivers.filter(driver => driver.status === 'available');
-
-      if (availableDrivers.length === 0) {
-        const option = document.createElement('option');
-        option.disabled = true;
-        option.textContent = 'No drivers available';
-        select.appendChild(option);
-        return;
+async function loadDrivers() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch('http://localhost:3000/drivers/available', {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch drivers');
+    
+    const drivers = await res.json();
+    const select = document.getElementById('selectDriver');
+    select.innerHTML = '<option value="">Select Driver</option>';
 
-      availableDrivers.forEach(driver => {
-        const option = document.createElement('option');
-        option.value = driver._id;
-        option.textContent = `${driver.driverName} (${driver.carModel})`;
-        option.setAttribute('data-driverName', driver.driverName);
-        option.setAttribute('data-carModel', driver.carModel);
-        select.appendChild(option);
-      });
+    if (drivers.length === 0) {
+      const option = document.createElement('option');
+      option.disabled = true;
+      option.textContent = 'No drivers available';
+      select.appendChild(option);
+      return;
     }
 
-    document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    drivers.forEach(driver => {
+      const option = document.createElement('option');
+      option.value = driver._id; // Use the driver's MongoDB _id
+      option.textContent = `${driver.driverName} (${driver.carModel})`;
+      option.setAttribute('data-driverName', driver.driverName);
+      option.setAttribute('data-carModel', driver.carModel);
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading drivers:', err);
+    alert('Failed to load drivers. Please try again.');
+  }
+}
 
-      const pickup = document.getElementById('pickup').value;
-      const destination = document.getElementById('destination').value;
-      const price = document.getElementById('price').value;
-      const select = document.getElementById('selectDriver');
-      const selectedOption = select.selectedOptions[0];
+document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-      if (!selectedOption || !selectedOption.value) return alert('Please select a driver.');
-      if (!price) return alert('Please select a price.');
+  const pickup = document.getElementById('pickup').value;
+  const destination = document.getElementById('destination').value;
+  const price = document.getElementById('price').value;
+  const select = document.getElementById('selectDriver');
+  const selectedOption = select.selectedOptions[0];
 
-      const driverId = selectedOption.value;
-      const driverName = selectedOption.getAttribute('data-driverName');
-      const carModel = selectedOption.getAttribute('data-carModel');
+  if (!selectedOption || !selectedOption.value) return alert('Please select a driver.');
+  if (!price) return alert('Please select a price.');
 
-      await fetch('http://localhost:3000/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: usernameGlobal,
-          phone: '',
-          driverId,
-          driverName,
-          carModel,
-          pickup,
-          destination,
-          price
-        })
-      });
+  const driverId = selectedOption.value;
+  const driverName = selectedOption.getAttribute('data-driverName');
+  const carModel = selectedOption.getAttribute('data-carModel');
 
-      alert('Order placed!');
-      e.target.reset();
+  try {
+    const res = await fetch('http://localhost:3000/orders', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        driverId,
+        pickup,
+        destination,
+        price
+      })
     });
 
-    async function loadDriverOrders() {
-      try {
-        // Fetch all orders
-        const ordersRes = await fetch('http://localhost:3000/orders');
-        const orders    = await ordersRes.json();
-
-        const tbody = document.querySelector('#driverOrdersTable tbody');
-        tbody.innerHTML = '';
-
-        // Filter just your orders, build rows & accumulate total
-        let totalEarnings = 0;
-        let completedRides = 0;
-        orders
-          .filter(o => o.driverName === usernameGlobal)
-          .forEach(order => {
-            // if completed, add to total
-            if (order.status === 'completed') {
-              totalEarnings += (order.earning ?? order.price);
-              completedRides++;
-            }
-
-            const earningDisplay = order.status === 'completed'
-              ? `RM${(order.earning ?? order.price).toFixed(2)}`
-              : '–';
-
-            const statusOptions = `
-              <select class="status-select" id="status-${order._id}">
-                <option value="requested" ${order.status==='requested' ? 'selected':''}>Requested</option>
-                <option value="accepted"  ${order.status==='accepted'  ? 'selected':''}>Accepted</option>
-                <option value="completed" ${order.status==='completed' ? 'selected':''}>Completed</option>
-                <option value="cancelled" ${order.status==='cancelled' ? 'selected':''}>Cancelled</option>
-              </select>
-            `;
-            const updateBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}')">Update</button>`;
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${order.username}</td>
-              <td>${order.pickup}</td>
-              <td>${order.destination}</td>
-              <td>RM${order.price.toFixed(2)}</td>
-              <td>${earningDisplay}</td>
-              <td>${statusOptions}</td>
-              <td>${updateBtn}</td>
-            `;
-            tbody.appendChild(row);
-          });
-
-        // Update the Total Earnings card
-        document.getElementById('driverEarnings').textContent = totalEarnings.toFixed(2);
-        document.getElementById('completedRides').textContent = completedRides;
-      } catch (err) {
-        console.error('Error loading driver orders:', err);
-        alert('Failed to load driver orders');
-      }
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'Failed to place order');
     }
+
+    alert('Order placed successfully!');
+    e.target.reset();
+    loadDrivers(); // Refresh driver list
+  } catch (err) {
+    alert('Error placing order: ' + err.message);
+  }
+});
+
+    async function loadDriverOrders() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    // First get the driver ID
+    const userRes = await fetch(`http://localhost:3000/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    
+    // Then get driver profile to get the driver ID
+    const driversRes = await fetch('http://localhost:3000/drivers', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const drivers = await driversRes.json();
+    const driver = drivers.find(d => d.driverName === user.email);
+    
+    if (!driver) {
+      throw new Error('Driver profile not found');
+    }
+    
+    // Now fetch orders for this driver
+    const ordersRes = await fetch(`http://localhost:3000/orders/driver/${driver._id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!ordersRes.ok) throw new Error('Failed to fetch orders');
+    const orders = await ordersRes.json();
+
+    const tbody = document.querySelector('#driverOrdersTable tbody');
+    tbody.innerHTML = '';
+
+    let totalEarnings = 0;
+    let completedRides = 0;
+    
+    orders.forEach(order => {
+      if (order.status === 'completed') {
+        totalEarnings += (order.price || 0);
+        completedRides++;
+      }
+
+      const earningDisplay = order.status === 'completed'
+        ? `RM${(order.price || 0).toFixed(2)}`
+        : '–';
+
+      const statusOptions = `
+        <select class="status-select" id="status-${order._id}">
+          <option value="requested" ${order.status==='requested'?'selected':''}>Requested</option>
+          <option value="accepted" ${order.status==='accepted'?'selected':''}>Accepted</option>
+          <option value="completed" ${order.status==='completed'?'selected':''}>Completed</option>
+          <option value="cancelled" ${order.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select>
+      `;
+      const updateBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}')">Update</button>`;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${order.username || 'Unknown'}</td>
+        <td>${order.pickup}</td>
+        <td>${order.destination}</td>
+        <td>RM${order.price?.toFixed(2) || '0.00'}</td>
+        <td>${earningDisplay}</td>
+        <td>${statusOptions}</td>
+        <td>${updateBtn}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    // Update the Total Earnings card
+    document.getElementById('driverEarnings').textContent = totalEarnings.toFixed(2);
+    document.getElementById('completedRides').textContent = completedRides;
+  } catch (err) {
+    console.error('Error loading driver orders:', err);
+    alert('Failed to load driver orders: ' + err.message);
+  }
+}
 
     async function updateOrderStatus(orderId) {
       const selectedStatus = document.getElementById(`status-${orderId}`).value;
@@ -1265,34 +1411,193 @@
     }
 
     async function viewAllUsers() {
-      const res = await fetch('http://localhost:3000/users');
-      const users = await res.json();
-      
-      let html = '<table>';
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch('http://localhost:3000/users', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch users');
+    
+    const users = await res.json();
+    
+    let html = '<table>';
+    html += `
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Role</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+    
+    users.forEach(user => {
       html += `
-        <thead>
-          <tr>
-            <th>User ID</th>
-            <th>Email</th>
-            <th>Role</th>
-          </tr>
-        </thead>
-        <tbody>
+        <tr>
+          <td>${user._id}</td>
+          <td>${user.email}</td>
+          <td>${user.phone || '-'}</td>
+          <td>${user.role}</td>
+          <td>${new Date(user.createdAt).toLocaleString()}</td>
+        </tr>
       `;
-      
-      users.forEach(user => {
-        html += `
-          <tr>
-            <td>${user._id}</td>
-            <td>${user.email}</td>
-            <td>${user.role}</td>
-          </tr>
-        `;
-      });
-      
-      html += '</tbody></table>';
-      document.getElementById('userList').innerHTML = html;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('userList').innerHTML = html;
+  } catch (err) {
+    console.error('Error loading users:', err);
+    alert('Failed to load users: ' + err.message);
+  }
+}
+
+async function viewAllOrders() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch('http://localhost:3000/orders', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch orders');
+    
+    const orders = await res.json();
+    
+    let html = '<table>';
+    html += `
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Passenger</th>
+          <th>Driver</th>
+          <th>Car Model</th>
+          <th>Pickup</th>
+          <th>Destination</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+    
+    orders.forEach(order => {
+      html += `
+        <tr>
+          <td>${order._id}</td>
+          <td>${order.username || order.userId}</td>
+          <td>${order.driverName || order.driverId}</td>
+          <td>${order.carModel || '-'}</td>
+          <td>${order.pickup}</td>
+          <td>${order.destination}</td>
+          <td>RM${order.price?.toFixed(2) || '0.00'}</td>
+          <td>
+            <span class="status-badge ${getStatusClass(order.status)}">
+              ${order.status}
+            </span>
+          </td>
+          <td>${new Date(order.createdAt).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('orderList').innerHTML = html;
+  } catch (err) {
+    console.error('Error loading orders:', err);
+    alert('Failed to load orders: ' + err.message);
+  }
+}
+
+function getStatusClass(status) {
+  switch(status) {
+    case 'completed':
+      return 'status-available';
+    case 'cancelled':
+      return 'status-unavailable';
+    default:
+      return '';
+  }
+}
+
+async function loadPassengerAnalytics() {
+  try {
+    const response = await fetch('http://localhost:3000/analytics/passengers', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
     }
+    
+    const data = await response.json();
+    
+    // Debugging: Log the raw data
+    console.log("Analytics raw data:", data);
+    
+    if (!data || data.length === 0) {
+      return showMessage('No passenger data available', 'info');
+    }
+    
+    renderAnalyticsTable(data);
+  } catch (error) {
+    console.error('Analytics error:', error);
+    showMessage(`Failed to load analytics: ${error.message}`, 'error');
+  }
+}
+
+function renderAnalyticsTable(passengers) {
+  const tableHtml = `
+    <div class="card">
+      <h3>Passenger Analytics</h3>
+      <div class="table-responsive">
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Passenger</th>
+              <th>Total Rides</th>
+              <th>Total Spent (RM)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${passengers.map(passenger => `
+              <tr>
+                <td>${passenger.name || passenger.email || 'Unknown'}</td>
+                <td>${passenger.totalRides || 0}</td>
+                <td>${(passenger.totalEarnings || 0).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('analyticsResults').innerHTML = tableHtml;
+}
+
+function showMessage(message, type = 'error') {
+  const alertClass = type === 'error' ? 'alert-error' : 'alert-info';
+  document.getElementById('analyticsResults').innerHTML = `
+    <div class="alert ${alertClass}">
+      ${message}
+    </div>
+  `;
+}
+
   </script>
 </body>
 </html>

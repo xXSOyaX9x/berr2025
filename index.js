@@ -209,8 +209,70 @@ app.delete('/admin/users/:id', checkDB, authenticate, authorize(['admin']), asyn
   res.status(204).send();
 });
 
-// Driver Routes with Authentication
-app.post('/drivers', checkDB, authenticate, authorize(['admin']), async (req, res) => {
+app.get('/analytics/passengers', checkDB, authenticate, authorize(['admin']), async (req, res) => {
+  try {
+const pipeline = [
+  {
+    $match: {
+      role: "user"
+    }
+  },
+  {
+    $lookup: {
+      from: "orders",
+      let: { userId: { $toString: "$_id" } }, // Convert _id to string
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: [
+                { $toString: "$userId" }, // Ensure both sides are strings
+                "$$userId"
+              ]
+            }
+          }
+        }
+      ],
+      as: "userOrders"
+    }
+  },
+  {
+    $addFields: {
+      validOrders: {
+        $filter: {
+          input: "$userOrders",
+          as: "order",
+          cond: { $and: [
+            { $ifNull: ["$$order.price", false] },
+            { $gt: ["$$order.price", 0] }
+          ]}
+        }
+      }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      userId: "$_id",
+      name: "$username",
+      email: 1,
+      totalRides: { $size: "$validOrders" },
+      totalEarnings: {
+        $round: [{ $sum: "$validOrders.price" }, 2]
+      }
+    }
+  }
+];
+
+    const result = await db.collection('users').aggregate(pipeline).toArray();
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Analytics error:", err);
+    res.status(500).json({ error: "Failed to generate passenger analytics" });
+  }
+});
+
+app.post('/drivers', checkDB, authenticate, authorize(['admin', 'driver']), async (req, res) => {
   const { driverName, carModel, phone, status = "available" } = req.body;
   if (!driverName || !carModel || !phone) {
     return res.status(400).json({ error: 'Driver name, car model and phone are required' });
@@ -226,17 +288,41 @@ app.post('/drivers', checkDB, authenticate, authorize(['admin']), async (req, re
   res.status(201).json({ message: 'Driver created', driverId: result.insertedId });
 });
 
-// Get all drivers (protected)
+// Get available drivers
+app.get('/drivers/available', checkDB, async (req, res) => {
+  try {
+    const drivers = await db.collection('drivers')
+      .find({ status: 'available' })
+      .project({ driverName: 1, carModel: 1, phone: 1 })
+      .toArray();
+    res.status(200).json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch drivers' });
+  }
+});
+
+//Get all drivers (protected)
+// Update the existing /drivers endpoint
 app.get('/drivers', checkDB, authenticate, async (req, res) => {
   try {
     const { status } = req.query;
-    const query = status ? { status } : {};
+    const query = {};
+    
+    // Only allow filtering by status if user is admin
+    if (status && req.user.role === 'admin') {
+      query.status = status;
+    } else if (status) {
+      // For non-admin users, only show available drivers
+      query.status = 'available';
+    }
+
     const drivers = await db.collection('drivers').find(query).toArray();
     res.status(200).json(drivers);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch drivers' });
   }
 });
+
 
 // Order Routes with Authentication
 app.post('/orders', checkDB, authenticate, async (req, res) => {
@@ -285,10 +371,75 @@ app.post('/orders', checkDB, authenticate, async (req, res) => {
   }
 });
 
+// Update Order Status
+app.patch('/orders/:id', checkDB, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const order = await db.collection('orders').findOne({ _id: new ObjectId(id) });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const updates = { status };
+    if (status === 'completed' && order.status !== 'completed') {
+      updates.earning = order.price;
+      updates.completedAt = new Date();
+    }
+
+    await db.collection('orders').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updates }
+    );
+
+    // If order is completed or cancelled, set driver back to available
+    if ((status === 'completed' || status === 'cancelled') && order.status !== 'completed') {
+      await db.collection('drivers').updateOne(
+        { _id: new ObjectId(order.driverId) },
+        { $set: { status: 'available' } }
+      );
+    }
+
+    if (status === 'completed' && order.status !== 'completed') {
+      await db.collection('drivers').updateOne(
+        { _id: new ObjectId(order.driverId) },
+        { $inc: { earnings: order.price } }
+      );
+    }
+
+    res.status(200).json({ message: 'Order status updated' });
+  } catch (err) {
+    res.status(400).json({ error: 'Bad request' });
+  }
+});
+
+// Get orders for a specific driver
+app.get('/orders/driver/:driverId', checkDB, authenticate, async (req, res) => {
+  try {
+    const orders = await db.collection('orders').find({ 
+      driverId: req.params.driverId 
+    }).toArray();
+    res.status(200).json(orders);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch driver orders' });
+  }
+});
+
 // Get all Orders (admin only)
-app.get('/orders', checkDB, authenticate, authorize(['admin']), async (req, res) => {
-  const orders = await db.collection('orders').find().toArray();
-  res.status(200).json(orders);
+app.get('/orders', checkDB, authenticate, async (req, res) => {
+  try {
+    let query = {};
+    
+    // If user is driver, only return their orders
+    if (req.user.role === 'driver') {
+      const driver = await db.collection('drivers').findOne({ driverName: req.user.email });
+      if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
+      query.driverId = driver._id.toString();
+    }
+    
+    const orders = await db.collection('orders').find(query).toArray();
+    res.status(200).json(orders);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
 });
 
 app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
