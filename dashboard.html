@@ -454,6 +454,22 @@
   background-color: #fee2e2;
   color: #b91c1c;
 }
+
+.status-select:disabled {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #e9ecef;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
   </style>
 </head>
 
@@ -601,11 +617,14 @@
             </div>
             
             <div class="profile-actions">
-              <button id="editProfileBtn" class="btn btn-primary" onclick="enableProfileEdit()">
-                <i class="fas fa-edit"></i> Edit Profile
-              </button>
-            </div>
-          </div>
+  <button id="editProfileBtn" class="btn btn-primary" onclick="enableProfileEdit()">
+    <i class="fas fa-edit"></i> Edit Profile
+  </button>
+  <button class="btn btn-danger" onclick="confirmDeleteAccount()" style="background-color: #ef233c; color: white;">
+    <i class="fas fa-trash-alt"></i> Delete Account
+  </button>
+</div>
+</div>
           
           <form id="userProfileForm" style="display: none;">
             <h3>Edit Profile</h3>
@@ -721,14 +740,17 @@
             </div>
             
             <div class="profile-actions">
-              <button id="editDriverProfileBtn" class="btn btn-primary" onclick="enableDriverProfileEdit()">
-                <i class="fas fa-edit"></i> Edit Profile
-              </button>
-              <button id="toggleStatusBtn" class="btn btn-accent" onclick="toggleDriverStatus()">
-                <i class="fas fa-power-off"></i> Go Offline
-              </button>
-            </div>
-          </div>
+  <button id="editDriverProfileBtn" class="btn btn-primary" onclick="enableDriverProfileEdit()">
+    <i class="fas fa-edit"></i> Edit Profile
+  </button>
+  <button id="toggleStatusBtn" class="btn btn-accent" onclick="toggleDriverStatus()">
+    <i class="fas fa-power-off"></i> Go Offline
+  </button>
+  <button class="btn btn-danger" onclick="confirmDeleteAccount()" style="background-color: #ef233c; color: white;">
+    <i class="fas fa-trash-alt"></i> Delete Account
+  </button>
+</div>
+</div>
           
           <form id="driverProfileForm" style="display: none;">
             <h3>Edit Driver Profile</h3>
@@ -909,6 +931,7 @@ async function register() {
         role 
       })
     });
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
@@ -958,8 +981,13 @@ async function register() {
     }
 
     alert('Registration successful!');
-    startDashboard();
-    loadProfile();
+    showLogin(); // Add this line to switch back to login page
+    // Clear the registration form
+    document.getElementById('registerEmail').value = '';
+    document.getElementById('registerPassword').value = '';
+    document.getElementById('registerPhone').value = '';
+    document.getElementById('registerRole').value = '';
+    document.getElementById('registerCarModel').value = '';
   } catch (err) {
     alert('Registration failed: ' + err.message);
   }
@@ -989,10 +1017,16 @@ async function loadProfile() {
   if (!userId) return;
   
   try {
-    const res = await fetch(`http://localhost:3000/users/${userId}`);
-    if (!res.ok) throw new Error('Failed to load profile');
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+
+    // Load user data
+    const userRes = await fetch(`http://localhost:3000/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!userRes.ok) throw new Error('Failed to load profile');
     
-    const user = await res.json();
+    const user = await userRes.json();
     
     // Set avatar initials
     const initials = user.email.charAt(0).toUpperCase();
@@ -1014,20 +1048,22 @@ async function loadProfile() {
       document.getElementById('userProfilePhone').value = user.phone || '';
     } 
     else if (role === 'driver') {
-      // Load driver-specific info - now query by userId
-      const driverRes = await fetch(`http://localhost:3000/drivers?userId=${userId}`);
-      const driver = await driverRes.json();
+      // Load driver data by user ID
+      const driverRes = await fetch(`http://localhost:3000/drivers?userId=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const drivers = await driverRes.json();
+      const driver = drivers[0]; // Get first driver (should only be one per user)
       
       if (!driver) {
         console.error('Driver profile not found for user:', userId);
         return;
       }
-      
       currentDriverId = driver._id;
       currentDriverStatus = driver.status || 'available';
       
       // Display driver profile info
-      document.getElementById('driverProfileNameDisplay').textContent = driver.driverName || user.email;
+       document.getElementById('driverProfileNameDisplay').textContent = driver.driverName || user.email;
       document.getElementById('driverProfileEmailDisplay').textContent = user.email;
       document.getElementById('driverProfilePhoneDisplay').textContent = driver.phone || user.phone || 'Not set';
       document.getElementById('driverCarModel').textContent = driver.carModel || 'Not set';
@@ -1055,27 +1091,34 @@ async function loadProfile() {
     }
   } catch (err) {
     console.error('Error loading profile:', err);
+    alert('Failed to load profile: ' + err.message);
   }
 }
 
-    async function toggleDriverStatus() {
-      const newStatus = currentDriverStatus === 'available' ? 'unavailable' : 'available';
-      
-      try {
-        const res = await fetch(`http://localhost:3000/drivers/${currentDriverId}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
-        });
-        
-        if (!res.ok) throw new Error('Failed to update status');
-        
-        currentDriverStatus = newStatus;
-        loadProfile();
-      } catch (err) {
-        alert('Error updating status: ' + err.message);
-      }
-    }
+async function toggleDriverStatus() {
+  const newStatus = currentDriverStatus === 'available' ? 'unavailable' : 'available';
+  
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch(`http://localhost:3000/drivers/${currentDriverId}`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    if (!res.ok) throw new Error('Failed to update status');
+    
+    currentDriverStatus = newStatus;
+    loadProfile(); // Refresh the profile to show new status
+  } catch (err) {
+    alert('Error updating status: ' + err.message);
+  }
+}
 
     function enableProfileEdit() {
       document.getElementById('userProfileInfo').style.display = 'none';
@@ -1140,7 +1183,7 @@ async function loadProfile() {
       document.getElementById('toggleStatusBtn').style.display = 'block';
     }
 
-    async function updateDriverProfile() {
+ async function updateDriverProfile() {
   const driverName = document.getElementById('driverProfileName').value;
   const carModel = document.getElementById('driverProfileCarModel').value;
   const phone = document.getElementById('driverProfilePhone').value;
@@ -1151,7 +1194,11 @@ async function loadProfile() {
     if (!token) throw new Error('Not authenticated');
     
     // First update user info
-    const userUpdates = { email: driverName };
+    const userUpdates = { 
+      username: driverName,
+      phone: phone
+    };
+    
     if (password) userUpdates.password = password;
     
     const userRes = await fetch(`http://localhost:3000/users/${userId}`, {
@@ -1162,27 +1209,33 @@ async function loadProfile() {
       },
       body: JSON.stringify(userUpdates)
     });
-    
+
+    // Check response status first
     if (!userRes.ok) {
-      const error = await userRes.json();
-      throw new Error(error.error || 'User update failed');
+      const errorText = await userRes.text();
+      throw new Error(`User update failed: ${errorText.substring(0, 100)}`);
     }
-    
-    // Then update driver info - use currentDriverId from loadProfile
-    if (!currentDriverId) throw new Error('Driver profile not loaded');
-    
-    const driverRes = await fetch(`http://localhost:3000/drivers/${currentDriverId}`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ driverName, carModel, phone })
-    });
-    
-    if (!driverRes.ok) {
-      const error = await driverRes.json();
-      throw new Error(error.error || 'Driver update failed');
+
+    // Then update driver info
+    if (currentDriverId) {
+      const driverRes = await fetch(`http://localhost:3000/drivers/${currentDriverId}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          driverName, 
+          carModel, 
+          phone 
+        })
+      });
+
+      // Check response status first
+      if (!driverRes.ok) {
+        const errorText = await driverRes.text();
+        throw new Error(`Driver update failed: ${errorText.substring(0, 100)}`);
+      }
     }
     
     alert('Profile updated successfully!');
@@ -1192,6 +1245,7 @@ async function loadProfile() {
     cancelEditDriverProfile();
     loadProfile();
   } catch (err) {
+    console.error('Update error:', err);
     alert('Failed to update profile: ' + err.message);
   }
 }
@@ -1331,15 +1385,22 @@ document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
         ? `RM${(order.price || 0).toFixed(2)}`
         : '–';
 
+      const isLocked = order.status === 'completed' || order.status === 'cancelled';
+      
       const statusOptions = `
-        <select class="status-select" id="status-${order._id}">
+        <select class="status-select" id="status-${order._id}" 
+                ${isLocked ? 'disabled' : ''}>
           <option value="requested" ${order.status==='requested'?'selected':''}>Requested</option>
           <option value="accepted" ${order.status==='accepted'?'selected':''}>Accepted</option>
           <option value="completed" ${order.status==='completed'?'selected':''}>Completed</option>
           <option value="cancelled" ${order.status==='cancelled'?'selected':''}>Cancelled</option>
         </select>
       `;
-      const updateBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}')">Update</button>`;
+      
+      // Only show update button if not locked
+      const updateBtn = !isLocked 
+        ? `<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}')">Update</button>`
+        : '<span class="status-badge">Locked</span>';
 
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -1596,6 +1657,35 @@ function showMessage(message, type = 'error') {
       ${message}
     </div>
   `;
+}
+
+async function confirmDeleteAccount() {
+  if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch(`http://localhost:3000/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.status === 204) {
+      alert('Account deleted successfully. You will be logged out.');
+      logout();
+    } else {
+      const error = await res.json();
+      throw new Error(error.error || 'Failed to delete account');
+    }
+  } catch (err) {
+    console.error('Error deleting account:', err);
+    alert('Failed to delete account: ' + err.message);
+  }
 }
 
   </script>

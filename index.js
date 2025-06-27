@@ -182,6 +182,94 @@ app.patch('/users/:id', checkDB, authenticate, async (req, res) => {
   }
 });
 
+app.delete('/users/:id', checkDB, authenticate, async (req, res) => {
+  try {
+    // Only allow users to delete their own account unless admin
+    if (req.user.role !== 'admin' && req.user.userId !== req.params.id) {
+      return res.status(403).json({ error: 'Forbidden - can only delete your own account' });
+    }
+
+    // First check if user exists
+    const user = await db.collection('users').findOne({ 
+      _id: new ObjectId(req.params.id) 
+    });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If user is a driver, delete their driver profile first
+    if (user.role === 'driver') {
+      await db.collection('drivers').deleteMany({ 
+        $or: [
+          { userId: req.params.id },
+          { _id: new ObjectId(req.params.id) }
+        ]
+      });
+    }
+
+    // Delete any orders associated with this user
+    await db.collection('orders').deleteMany({ 
+      $or: [
+        { userId: req.params.id },
+        { driverId: req.params.id }
+      ]
+    });
+
+    // Finally delete the user
+    const result = await db.collection('users').deleteOne({ 
+      _id: new ObjectId(req.params.id) 
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
+app.get('/drivers/available-with-users', checkDB, async (req, res) => {
+  try {
+    const drivers = await db.collection('drivers').aggregate([
+      {
+        $match: { status: 'available' }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      {
+        $match: {
+          'user': { $exists: true, $ne: null }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          driverName: 1,
+          carModel: 1,
+          phone: 1,
+          status: 1,
+          'user._id': 1
+        }
+      }
+    ]).toArray();
+    
+    res.status(200).json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch drivers' });
+  }
+});
+
 // Admin-only routes
 app.get('/users', checkDB, authenticate, authorize(['admin']), async (req, res) => {
   const users = await db.collection('users').find().toArray();
@@ -272,21 +360,42 @@ const pipeline = [
   }
 });
 
-app.post('/drivers', checkDB, authenticate, authorize(['admin', 'driver']), async (req, res) => {
-  const { driverName, carModel, phone, status = "available" } = req.body;
+// Update the POST /drivers endpoint
+app.post('/drivers', checkDB, authenticate, async (req, res) => {
+  const {userId, driverName, carModel, phone, status = "available" } = req.body;
   if (!driverName || !carModel || !phone) {
     return res.status(400).json({ error: 'Driver name, car model and phone are required' });
   }
-  const result = await db.collection('drivers').insertOne({ 
-    driverName, 
-    carModel,
-    phone,
-    status,
-    earnings: 0,
-    createdAt: new Date()
-  });
-  res.status(201).json({ message: 'Driver created', driverId: result.insertedId });
+
+  try {
+    // Check if user exists
+    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if driver already exists for this user
+    const existingDriver = await db.collection('drivers').findOne({ userId });
+    if (existingDriver) {
+      return res.status(400).json({ error: 'Driver profile already exists for this user' });
+    }
+
+    const result = await db.collection('drivers').insertOne({ 
+      userId,
+      driverName, 
+      carModel,
+      phone,
+      status,
+      earnings: 0,
+      createdAt: new Date()
+    });
+    
+    res.status(201).json({ message: 'Driver created', driverId: result.insertedId });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create driver profile' });
+  }
 });
+
 
 // Get available drivers
 app.get('/drivers/available', checkDB, async (req, res) => {
@@ -301,19 +410,17 @@ app.get('/drivers/available', checkDB, async (req, res) => {
   }
 });
 
-//Get all drivers (protected)
-// Update the existing /drivers endpoint
 app.get('/drivers', checkDB, authenticate, async (req, res) => {
   try {
-    const { status } = req.query;
+    const { userId, status } = req.query;
     const query = {};
     
-    // Only allow filtering by status if user is admin
-    if (status && req.user.role === 'admin') {
+    if (userId) {
+      query.userId = userId;
+    }
+    
+    if (status) {
       query.status = status;
-    } else if (status) {
-      // For non-admin users, only show available drivers
-      query.status = 'available';
     }
 
     const drivers = await db.collection('drivers').find(query).toArray();
@@ -323,6 +430,31 @@ app.get('/drivers', checkDB, authenticate, async (req, res) => {
   }
 });
 
+app.patch('/drivers/:id', checkDB, authenticate, async (req, res) => {
+  try {
+    const { driverName, carModel, phone, status } = req.body;
+    const updates = {};
+    
+    if (driverName) updates.driverName = driverName;
+    if (carModel) updates.carModel = carModel;
+    if (phone) updates.phone = phone;
+    if (status) updates.status = status;
+
+    const result = await db.collection('drivers').updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: updates }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    res.status(200).json({ message: 'Driver updated successfully' });
+  } catch (err) {
+    console.error('Driver update error:', err);
+    res.status(500).json({ error: 'Failed to update driver profile' });
+  }
+});
 
 // Order Routes with Authentication
 app.post('/orders', checkDB, authenticate, async (req, res) => {
@@ -379,6 +511,10 @@ app.patch('/orders/:id', checkDB, async (req, res) => {
     const order = await db.collection('orders').findOne({ _id: new ObjectId(id) });
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
+    if (['completed', 'cancelled'].includes(order.status)) {
+      return res.status(400).json({ error: 'Cannot modify completed or cancelled orders' });
+    }
+
     const updates = { status };
     if (status === 'completed' && order.status !== 'completed') {
       updates.earning = order.price;
@@ -398,12 +534,14 @@ app.patch('/orders/:id', checkDB, async (req, res) => {
       );
     }
 
-    if (status === 'completed' && order.status !== 'completed') {
-      await db.collection('drivers').updateOne(
-        { _id: new ObjectId(order.driverId) },
-        { $inc: { earnings: order.price } }
-      );
-    }
+// In index.txt, modify the PATCH /orders/:id endpoint
+if (status === 'completed' && order.status !== 'completed') {
+  const driverEarnings = order.price; // Assuming 30% platform commission
+  await db.collection('drivers').updateOne(
+    { _id: new ObjectId(order.driverId) },
+    { $inc: { earnings: driverEarnings } } // Only add the driver's portion
+  );
+}
 
     res.status(200).json({ message: 'Order status updated' });
   } catch (err) {
