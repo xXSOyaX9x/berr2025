@@ -1455,21 +1455,32 @@ document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
     }
 
     async function blockUser() {
-      const id = document.getElementById('blockUserId').value;
-      if (!id) return alert('Enter a User ID!');
+  const id = document.getElementById('blockUserId').value;
+  if (!id) return alert('Enter a User ID!');
 
-      const res = await fetch(`http://localhost:3000/admin/users/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (res.status === 204) {
-        alert('User deleted successfully!');
-        viewAllUsers(); // refresh list
-      } else {
-        const error = await res.json();
-        alert('Failed to delete user: ' + error.error);
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Not authenticated');
+    
+    const res = await fetch(`http://localhost:3000/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+
+    if (res.status === 204) {
+      alert('User deleted successfully!');
+      viewAllUsers(); // refresh list
+    } else {
+      const error = await res.json();
+      throw new Error(error.error || 'Failed to delete user');
     }
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    alert('Failed to delete user: ' + err.message);
+  }
+}
 
     async function viewAllUsers() {
   try {
